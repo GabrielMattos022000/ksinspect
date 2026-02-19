@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import logo from "@/assets/logo.png";
+import loginBg from "@/assets/login-bg.jpg";
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
@@ -37,8 +38,12 @@ export default function Auth() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
+    <div
+      className="flex min-h-screen items-center justify-center p-4 bg-cover bg-center bg-no-repeat"
+      style={{ backgroundImage: `url(${loginBg})` }}
+    >
+      <div className="absolute inset-0 bg-black/40" />
+      <Card className="relative z-10 w-full max-w-md bg-card/95 backdrop-blur-sm">
         <CardHeader className="text-center">
           <div className="mx-auto mb-2 flex items-center justify-center">
             <img src={logo} alt="KS Logo" className="h-16 w-auto" />
