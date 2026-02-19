@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Settings2 } from "lucide-react";
@@ -20,21 +20,21 @@ export default function ProductsPage() {
   const [editing, setEditing] = useState<Product | null>(null);
   const [pb, setPb] = useState("");
   const [ks, setKs] = useState("");
-  const [cav, setCav] = useState("");
-  const [maq, setMaq] = useState("");
   const navigate = useNavigate();
 
-  const fetch = async () => {
+  const fetchProducts = async () => {
     const { data } = await supabase.from("products").select("*").order("created_at", { ascending: false });
     setProducts(data ?? []);
     setLoading(false);
   };
 
-  useEffect(() => { fetch(); }, []);
+  useEffect(() => { fetchProducts(); }, []);
 
   const handleSave = async () => {
-    if (!pb.trim() || !ks.trim() || !cav.trim() || !maq.trim()) return toast.error("Preencha todos os campos");
-    const payload = { pb: pb.trim(), ks: ks.trim(), cav: cav.trim(), maq: maq.trim() };
+    if (!pb.trim() || !ks.trim()) return toast.error("Preencha PB e KS");
+    // formatted_name will be set by the DB trigger or we set it here
+    const formattedName = `PB: ${pb.trim()} KS: ${ks.trim()}`;
+    const payload = { pb: pb.trim(), ks: ks.trim(), cav: "", maq: "", formatted_name: formattedName };
     if (editing) {
       const { error } = await supabase.from("products").update(payload).eq("id", editing.id);
       if (error) return toast.error(error.message);
@@ -46,32 +46,32 @@ export default function ProductsPage() {
     }
     setDialogOpen(false);
     setEditing(null);
-    setPb(""); setKs(""); setCav(""); setMaq("");
-    fetch();
+    setPb(""); setKs("");
+    fetchProducts();
   };
 
   const toggleActive = async (p: Product) => {
     await supabase.from("products").update({ active: !p.active }).eq("id", p.id);
-    fetch();
+    fetchProducts();
   };
 
   const deleteProduct = async (id: string) => {
-    if (!confirm("Excluir este produto?")) return;
+    if (!confirm("Excluir este produto e todas as suas características?")) return;
     const { error } = await supabase.from("products").delete().eq("id", id);
     if (error) return toast.error(error.message);
     toast.success("Produto excluído");
-    fetch();
+    fetchProducts();
   };
 
   const openEdit = (p: Product) => {
     setEditing(p);
-    setPb(p.pb); setKs(p.ks); setCav(p.cav); setMaq(p.maq);
+    setPb(p.pb); setKs(p.ks);
     setDialogOpen(true);
   };
 
   const openNew = () => {
     setEditing(null);
-    setPb(""); setKs(""); setCav(""); setMaq("");
+    setPb(""); setKs("");
     setDialogOpen(true);
   };
 
@@ -99,18 +99,13 @@ export default function ProductsPage() {
                   <Label>KS</Label>
                   <Input value={ks} onChange={(e) => setKs(e.target.value)} placeholder="97561" />
                 </div>
-                <div className="space-y-2">
-                  <Label>Cav</Label>
-                  <Input value={cav} onChange={(e) => setCav(e.target.value)} placeholder="01" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Máq</Label>
-                  <Input value={maq} onChange={(e) => setMaq(e.target.value)} placeholder="01" />
-                </div>
               </div>
-              <div className="rounded bg-muted p-2 text-sm text-muted-foreground">
-                Nome: PB: {pb} KS: {ks} Cav: {cav} Máq: {maq}
-              </div>
+              {(pb || ks) && (
+                <div className="rounded bg-muted p-2 text-sm text-muted-foreground">
+                  Nome: PB: {pb} KS: {ks}
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground">Cav e Máq serão informados ao iniciar um ciclo de medição.</p>
               <Button onClick={handleSave} className="w-full">Salvar</Button>
             </div>
           </DialogContent>
@@ -122,7 +117,9 @@ export default function ProductsPage() {
           <Card key={p.id} className={!p.active ? "opacity-60" : ""}>
             <CardHeader className="pb-2">
               <div className="flex items-start justify-between">
-                <CardTitle className="text-sm font-medium">{p.formatted_name}</CardTitle>
+                <div>
+                  <CardTitle className="text-sm font-medium">PB: {p.pb} KS: {p.ks}</CardTitle>
+                </div>
                 <div className="flex items-center gap-1">
                   <Switch checked={p.active} onCheckedChange={() => toggleActive(p)} />
                   <Button variant="ghost" size="icon" onClick={() => navigate(`/admin/products/${p.id}/characteristics`)}>
