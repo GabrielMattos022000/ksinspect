@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Gauge } from "lucide-react";
+import logo from "@/assets/logo.png";
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
@@ -40,8 +40,8 @@ export default function Auth() {
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-primary">
-            <Gauge className="h-6 w-6 text-primary-foreground" />
+          <div className="mx-auto mb-2 flex items-center justify-center">
+            <img src={logo} alt="KS Logo" className="h-16 w-auto" />
           </div>
           <CardTitle className="text-2xl">KS Inspection System</CardTitle>
           <CardDescription>
