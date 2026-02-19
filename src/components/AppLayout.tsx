@@ -94,7 +94,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       )}>
         <Gauge className="h-6 w-6 shrink-0 text-sidebar-primary" />
         {!collapsed && (
-          <span className="text-lg font-bold text-sidebar-primary-foreground">Medições</span>
+          <span className="text-lg font-bold text-sidebar-primary-foreground">KS Inspection</span>
         )}
       </div>
 
@@ -172,7 +172,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-4">
           <div className="flex items-center gap-2">
             <Gauge className="h-6 w-6 text-sidebar-primary" />
-            <span className="text-lg font-bold text-sidebar-primary-foreground">Medições</span>
+            <span className="text-lg font-bold text-sidebar-primary-foreground">KS Inspection</span>
           </div>
           <Button variant="ghost" size="icon" onClick={() => setMobileOpen(false)} className="text-sidebar-foreground/70">
             <X className="h-5 w-5" />
@@ -227,7 +227,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             <Menu className="h-5 w-5" />
           </Button>
           <h1 className="text-lg font-semibold truncate">
-            {filteredNav.find((n) => n.href === location.pathname)?.label ?? "Medições"}
+            {filteredNav.find((n) => n.href === location.pathname)?.label ?? "KS Inspection"}
           </h1>
         </header>
         <main className="flex-1 overflow-auto p-4 lg:p-6">{children}</main>
