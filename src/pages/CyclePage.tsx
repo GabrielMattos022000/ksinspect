@@ -26,12 +26,10 @@ interface MeasurementRow {
 interface CycleInfo {
   id: string;
   line_name: string;
-  machine_name: string;
   product_formatted_name: string;
   product_pb: string;
   product_ks: string;
-  product_cav: string;
-  product_maq: string;
+  cav: string;
   week_cast: string;
   operator_badge: string;
   status: string;
@@ -47,28 +45,29 @@ function generateTxt(cycle: CycleInfo, rows: MeasurementRow[]): { filename: stri
   const lineName = cycle.line_name.replace(/\s+/g, "");
   const overallResult = rows.some((r) => !r.within_limits) ? "NOK" : "OK";
 
-  const filename = `${lineName}_${cycle.product_pb}_${cycle.product_ks}_CAV${cycle.product_cav}_MAQ${cycle.product_maq}_${cycle.week_cast}_OP${cycle.operator_badge}_${dateStr}_${timeStr}.txt`;
+  const filename = `${lineName}_${cycle.product_pb}_${cycle.product_ks}_CAV${cycle.cav}_${cycle.week_cast}_OP${cycle.operator_badge}_${dateStr}_${timeStr}.txt`;
 
   const header = [
     `Máquina: ${cycle.line_name} (aberto)`,
-    `Produto: PB: ${cycle.product_pb} KS: ${cycle.product_ks} Cav: ${cycle.product_cav} Máq: ${cycle.product_maq}`,
+    `Produto: PB: ${cycle.product_pb} KS: ${cycle.product_ks}`,
     `Semana de Produção Fundida: ${cycle.week_cast}`,
     `Operador: ${cycle.operator_badge}`,
     `DataHora: ${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`,
     `Resultado: ${overallResult}`,
+    `Cavidade: ${cycle.cav}`,
     "",
     "Características:",
   ].join("\n");
 
-  const lines = rows
+  const charLines = rows
     .sort((a, b) => a.char_sort_order - b.char_sort_order)
     .map((r) => {
       const status = r.within_limits ? "OK" : "NOK";
-      return `${r.char_name};${r.char_unit};${r.char_nominal};${r.char_limit_max};${r.char_limit_min};${r.measured_value};${r.deviation};${status}`;
+      return `${r.char_name};${r.char_unit};${r.char_nominal};${r.char_limit_max};${r.char_limit_min};${r.measured_value};${status}`;
     })
     .join("\n");
 
-  return { filename, content: header + "\n" + lines };
+  return { filename, content: header + "\n" + charLines };
 }
 
 function downloadTxt(filename: string, content: string) {
@@ -104,12 +103,10 @@ export default function CyclePage() {
     const info: CycleInfo = {
       id: cycleData.id,
       line_name: (cycleData as any).lines?.name ?? "",
-      machine_name: (cycleData as any).machines?.name ?? "",
       product_formatted_name: (cycleData as any).products?.formatted_name ?? "",
       product_pb: (cycleData as any).products?.pb ?? "",
       product_ks: (cycleData as any).products?.ks ?? "",
-      product_cav: (cycleData as any).products?.cav ?? "",
-      product_maq: (cycleData as any).products?.maq ?? "",
+      cav: (cycleData as any).cav ?? "",
       week_cast: cycleData.week_cast,
       operator_badge: cycleData.operator_badge,
       status: cycleData.status,
@@ -216,7 +213,7 @@ export default function CyclePage() {
         <CardContent className="p-4">
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium">{cycle.line_name} / {cycle.machine_name}</p>
+              <p className="text-sm font-medium">{cycle.line_name}</p>
               <p className="text-xs text-muted-foreground">{cycle.product_formatted_name}</p>
               <p className="text-xs text-muted-foreground">Semana: {cycle.week_cast} | OP: {cycle.operator_badge}</p>
             </div>
