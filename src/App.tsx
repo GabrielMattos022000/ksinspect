@@ -6,14 +6,14 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import AppLayout from "@/components/AppLayout";
 import Auth from "@/pages/Auth";
-import Index from "@/pages/Index";
 import NewCyclePage from "@/pages/NewCyclePage";
 import CyclePage from "@/pages/CyclePage";
 import HistoryPage from "@/pages/HistoryPage";
 import LinesPage from "@/pages/admin/LinesPage";
-import MachinesPage from "@/pages/admin/MachinesPage";
 import ProductsPage from "@/pages/admin/ProductsPage";
 import CharacteristicsPage from "@/pages/admin/CharacteristicsPage";
+import UsersPage from "@/pages/admin/UsersPage";
+import MonitoringPage from "@/pages/MonitoringPage";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -42,14 +42,14 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/auth" element={<AuthRoute />} />
-            <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+            <Route path="/" element={<ProtectedRoute><MonitoringPage /></ProtectedRoute>} />
             <Route path="/cycle/new" element={<ProtectedRoute><NewCyclePage /></ProtectedRoute>} />
             <Route path="/cycle/:cycleId" element={<ProtectedRoute><CyclePage /></ProtectedRoute>} />
             <Route path="/history" element={<ProtectedRoute><HistoryPage /></ProtectedRoute>} />
             <Route path="/admin/lines" element={<ProtectedRoute adminOnly><LinesPage /></ProtectedRoute>} />
-            <Route path="/admin/machines" element={<ProtectedRoute adminOnly><MachinesPage /></ProtectedRoute>} />
             <Route path="/admin/products" element={<ProtectedRoute adminOnly><ProductsPage /></ProtectedRoute>} />
             <Route path="/admin/products/:productId/characteristics" element={<ProtectedRoute adminOnly><CharacteristicsPage /></ProtectedRoute>} />
+            <Route path="/admin/users" element={<ProtectedRoute adminOnly><UsersPage /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

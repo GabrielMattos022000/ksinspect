@@ -10,34 +10,42 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 
-type Line = Tables<"lines">;
-type Machine = Tables<"machines">;
 type Product = Tables<"products">;
+
+interface Line {
+  id: string;
+  name: string;
+  machine_count: number;
+  line_group: string;
+  active: boolean;
+}
 
 export default function NewCyclePage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [lines, setLines] = useState<Line[]>([]);
-  const [machines, setMachines] = useState<Machine[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [lineId, setLineId] = useState("");
-  const [machineId, setMachineId] = useState("");
+  const [machineNum, setMachineNum] = useState("");
   const [productId, setProductId] = useState("");
   const [weekCast, setWeekCast] = useState("");
   const [badge, setBadge] = useState("");
+  const [cav, setCav] = useState("");
+  const [maq, setMaq] = useState("");
   const [productSearch, setProductSearch] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
+  const selectedLine = lines.find((l) => l.id === lineId);
+  const machineCount = selectedLine?.machine_count ?? 1;
+  const machineNumbers = Array.from({ length: machineCount }, (_, i) => String(i + 1));
+
   useEffect(() => {
-    supabase.from("lines").select("*").eq("active", true).order("name").then(({ data }) => setLines(data ?? []));
+    supabase.from("lines").select("*").eq("active", true).order("name").then(({ data }) => setLines((data as Line[]) ?? []));
     supabase.from("products").select("*").eq("active", true).order("pb").then(({ data }) => setProducts(data ?? []));
   }, []);
 
   useEffect(() => {
-    if (!lineId) { setMachines([]); setMachineId(""); return; }
-    supabase.from("machines").select("*").eq("line_id", lineId).eq("active", true).order("name")
-      .then(({ data }) => setMachines(data ?? []));
-    setMachineId("");
+    setMachineNum("");
   }, [lineId]);
 
   const weekCastValid = /^\d{1,2}[A-Za-z]$/.test(weekCast);
@@ -46,14 +54,44 @@ export default function NewCyclePage() {
   const filteredProducts = products.filter((p) => {
     if (!productSearch) return true;
     const s = productSearch.toLowerCase();
-    return (p.pb + p.ks + p.cav + p.maq + (p.formatted_name ?? "")).toLowerCase().includes(s);
+    return (p.pb + p.ks + (p.formatted_name ?? "")).toLowerCase().includes(s);
   });
 
-  const canStart = lineId && machineId && productId && weekCastValid && badgeValid;
+  const canStart = lineId && machineNum && productId && weekCastValid && badgeValid && cav.trim() && maq.trim();
 
   const handleStart = async () => {
     if (!canStart || !user) return;
     setSubmitting(true);
+
+    // We need to find or create a machine record for this line+machine combo
+    // First check if a machine exists for this line with this number
+    let machineId: string;
+    const { data: existingMachine } = await supabase
+      .from("machines")
+      .select("id")
+      .eq("line_id", lineId)
+      .eq("name", machineNum)
+      .maybeSingle();
+
+    if (existingMachine) {
+      machineId = existingMachine.id;
+    } else {
+      // Create the machine record on the fly
+      const { data: newMachine, error: machineError } = await supabase
+        .from("machines")
+        .insert({ line_id: lineId, name: machineNum, machine_group: selectedLine?.line_group ?? "Cilmop" } as any)
+        .select("id")
+        .single();
+      if (machineError || !newMachine) {
+        toast.error(machineError?.message ?? "Erro ao registrar máquina");
+        setSubmitting(false);
+        return;
+      }
+      machineId = newMachine.id;
+    }
+
+    // Update product with cav and maq if provided
+    await supabase.from("products").update({ cav: cav.trim(), maq: maq.trim() } as any).eq("id", productId);
 
     // Create cycle
     const { data: cycle, error } = await supabase.from("measurement_cycles").insert({
@@ -63,7 +101,9 @@ export default function NewCyclePage() {
       week_cast: weekCast,
       operator_badge: badge,
       user_id: user.id,
-    }).select().single();
+      cav: cav.trim(),
+      maq: maq.trim(),
+    } as any).select().single();
 
     if (error || !cycle) {
       toast.error(error?.message ?? "Erro ao criar ciclo");
@@ -110,10 +150,14 @@ export default function NewCyclePage() {
 
           <div className="space-y-2">
             <Label>Máquina</Label>
-            <Select value={machineId} onValueChange={setMachineId} disabled={!lineId}>
-              <SelectTrigger><SelectValue placeholder={lineId ? "Selecione" : "Selecione a linha primeiro"} /></SelectTrigger>
+            <Select value={machineNum} onValueChange={setMachineNum} disabled={!lineId}>
+              <SelectTrigger>
+                <SelectValue placeholder={lineId ? "Selecione a máquina" : "Selecione a linha primeiro"} />
+              </SelectTrigger>
               <SelectContent>
-                {machines.map((m) => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
+                {machineNumbers.map((n) => (
+                  <SelectItem key={n} value={n}>Máquina {n}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -121,7 +165,7 @@ export default function NewCyclePage() {
           <div className="space-y-2">
             <Label>Produto</Label>
             <Input
-              placeholder="Buscar por PB, KS, Cav, Maq..."
+              placeholder="Buscar por PB ou KS..."
               value={productSearch}
               onChange={(e) => setProductSearch(e.target.value)}
               className="mb-2"
@@ -130,11 +174,24 @@ export default function NewCyclePage() {
               <SelectTrigger><SelectValue placeholder="Selecione o produto" /></SelectTrigger>
               <SelectContent>
                 {filteredProducts.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>{p.formatted_name}</SelectItem>
+                  <SelectItem key={p.id} value={p.id}>PB: {p.pb} KS: {p.ks}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
+
+          {productId && (
+            <div className="grid grid-cols-2 gap-3 rounded-md border p-3 bg-muted/30">
+              <div className="space-y-2">
+                <Label>Cav</Label>
+                <Input value={cav} onChange={(e) => setCav(e.target.value)} placeholder="Ex: 01" />
+              </div>
+              <div className="space-y-2">
+                <Label>Máq</Label>
+                <Input value={maq} onChange={(e) => setMaq(e.target.value)} placeholder="Ex: 01" />
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">

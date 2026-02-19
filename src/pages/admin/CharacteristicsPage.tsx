@@ -3,16 +3,26 @@ import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, ArrowLeft, GripVertical } from "lucide-react";
+import { Plus, Pencil, Trash2, ArrowLeft, Clock } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { Tables } from "@/integrations/supabase/types";
 
-type Characteristic = Tables<"characteristics">;
+type Characteristic = Tables<"characteristics"> & { measurement_interval_minutes?: number };
 type Product = Tables<"products">;
+
+const INTERVAL_OPTIONS = [
+  { label: "30 minutos", value: 30 },
+  { label: "1 hora", value: 60 },
+  { label: "2 horas", value: 120 },
+  { label: "4 horas", value: 240 },
+  { label: "8 horas", value: 480 },
+  { label: "Turno (8h)", value: 480 },
+];
 
 export default function CharacteristicsPage() {
   const { productId } = useParams<{ productId: string }>();
@@ -29,6 +39,7 @@ export default function CharacteristicsPage() {
   const [nominal, setNominal] = useState("");
   const [limitMin, setLimitMin] = useState("");
   const [limitMax, setLimitMax] = useState("");
+  const [intervalMinutes, setIntervalMinutes] = useState("60");
 
   const fetchData = async () => {
     const [{ data: p }, { data: c }] = await Promise.all([
@@ -36,7 +47,7 @@ export default function CharacteristicsPage() {
       supabase.from("characteristics").select("*").eq("product_id", productId!).order("sort_order"),
     ]);
     setProduct(p);
-    setChars(c ?? []);
+    setChars((c as Characteristic[]) ?? []);
     setLoading(false);
   };
 
@@ -52,7 +63,8 @@ export default function CharacteristicsPage() {
       limit_max: parseFloat(limitMax) || 0,
       product_id: productId!,
       sort_order: editing ? editing.sort_order : chars.length,
-    };
+      measurement_interval_minutes: parseInt(intervalMinutes) || 60,
+    } as any;
     if (editing) {
       const { error } = await supabase.from("characteristics").update(payload).eq("id", editing.id);
       if (error) return toast.error(error.message);
@@ -69,7 +81,7 @@ export default function CharacteristicsPage() {
   };
 
   const resetForm = () => {
-    setName(""); setUnit("mm"); setNominal(""); setLimitMin(""); setLimitMax("");
+    setName(""); setUnit("mm"); setNominal(""); setLimitMin(""); setLimitMax(""); setIntervalMinutes("60");
   };
 
   const toggleActive = async (c: Characteristic) => {
@@ -91,6 +103,7 @@ export default function CharacteristicsPage() {
     setNominal(String(c.nominal));
     setLimitMin(String(c.limit_min));
     setLimitMax(String(c.limit_max));
+    setIntervalMinutes(String(c.measurement_interval_minutes ?? 60));
     setDialogOpen(true);
   };
 
@@ -113,6 +126,12 @@ export default function CharacteristicsPage() {
     fetchData();
   };
 
+  const formatInterval = (minutes: number) => {
+    if (minutes < 60) return `${minutes} min`;
+    const h = minutes / 60;
+    return h === 1 ? "1 hora" : `${h} horas`;
+  };
+
   if (loading) return <div className="p-4 text-muted-foreground">Carregando...</div>;
 
   return (
@@ -123,7 +142,7 @@ export default function CharacteristicsPage() {
         </Button>
         <div>
           <h2 className="text-xl font-semibold">Características</h2>
-          <p className="text-sm text-muted-foreground">{product?.formatted_name}</p>
+          <p className="text-sm text-muted-foreground">PB: {product?.pb} KS: {product?.ks}</p>
         </div>
         <div className="ml-auto">
           <Button onClick={openNew}><Plus className="mr-2 h-4 w-4" />Nova</Button>
@@ -158,6 +177,19 @@ export default function CharacteristicsPage() {
                 <Input type="number" step="any" value={limitMax} onChange={(e) => setLimitMax(e.target.value)} />
               </div>
             </div>
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1">
+                <Clock className="h-3.5 w-3.5" /> Intervalo de Medição
+              </Label>
+              <Select value={intervalMinutes} onValueChange={setIntervalMinutes}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {INTERVAL_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <Button onClick={handleSave} className="w-full">Salvar</Button>
           </div>
         </DialogContent>
@@ -175,6 +207,9 @@ export default function CharacteristicsPage() {
                 <p className="font-medium text-sm">{c.name}</p>
                 <p className="text-xs text-muted-foreground">
                   {c.unit} | Nom: {c.nominal} | Min: {c.limit_min} | Max: {c.limit_max}
+                </p>
+                <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                  <Clock className="h-3 w-3" /> A cada {formatInterval(c.measurement_interval_minutes ?? 60)}
                 </p>
               </div>
               <Switch checked={c.active} onCheckedChange={() => toggleActive(c)} />

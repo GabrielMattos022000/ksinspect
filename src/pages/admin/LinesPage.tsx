@@ -8,9 +8,19 @@ import { toast } from "sonner";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import type { Tables } from "@/integrations/supabase/types";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-type Line = Tables<"lines">;
+const LINE_GROUPS = ["Cilmop", "Gasolina", "Diesel"];
+
+interface Line {
+  id: string;
+  name: string;
+  active: boolean;
+  machine_count: number;
+  line_group: string;
+  created_at: string;
+  updated_at: string;
+}
 
 export default function LinesPage() {
   const [lines, setLines] = useState<Line[]>([]);
@@ -18,10 +28,12 @@ export default function LinesPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Line | null>(null);
   const [name, setName] = useState("");
+  const [machineCount, setMachineCount] = useState("1");
+  const [lineGroup, setLineGroup] = useState("Cilmop");
 
   const fetchLines = async () => {
     const { data } = await supabase.from("lines").select("*").order("name");
-    setLines(data ?? []);
+    setLines((data as Line[]) ?? []);
     setLoading(false);
   };
 
@@ -29,23 +41,25 @@ export default function LinesPage() {
 
   const handleSave = async () => {
     if (!name.trim()) return toast.error("Nome obrigatório");
+    const count = parseInt(machineCount) || 1;
+    const payload = { name: name.trim(), machine_count: count, line_group: lineGroup } as any;
     if (editing) {
-      const { error } = await supabase.from("lines").update({ name: name.trim() }).eq("id", editing.id);
+      const { error } = await supabase.from("lines").update(payload).eq("id", editing.id);
       if (error) return toast.error(error.message);
       toast.success("Linha atualizada");
     } else {
-      const { error } = await supabase.from("lines").insert({ name: name.trim() });
+      const { error } = await supabase.from("lines").insert(payload);
       if (error) return toast.error(error.message);
       toast.success("Linha criada");
     }
     setDialogOpen(false);
     setEditing(null);
-    setName("");
+    setName(""); setMachineCount("1"); setLineGroup("Cilmop");
     fetchLines();
   };
 
   const toggleActive = async (line: Line) => {
-    await supabase.from("lines").update({ active: !line.active }).eq("id", line.id);
+    await supabase.from("lines").update({ active: !line.active } as any).eq("id", line.id);
     fetchLines();
   };
 
@@ -60,16 +74,25 @@ export default function LinesPage() {
   const openEdit = (line: Line) => {
     setEditing(line);
     setName(line.name);
+    setMachineCount(String(line.machine_count ?? 1));
+    setLineGroup(line.line_group ?? "Cilmop");
     setDialogOpen(true);
   };
 
   const openNew = () => {
     setEditing(null);
-    setName("");
+    setName(""); setMachineCount("1"); setLineGroup("Cilmop");
     setDialogOpen(true);
   };
 
   if (loading) return <div className="p-4 text-muted-foreground">Carregando...</div>;
+
+  // Group by line_group
+  const grouped = LINE_GROUPS.reduce<Record<string, Line[]>>((acc, g) => {
+    acc[g] = lines.filter((l) => (l.line_group ?? "Cilmop") === g);
+    return acc;
+  }, {});
+  const ungrouped = lines.filter((l) => !LINE_GROUPS.includes(l.line_group ?? "Cilmop"));
 
   return (
     <div className="space-y-4">
@@ -88,30 +111,91 @@ export default function LinesPage() {
                 <Label>Nome</Label>
                 <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: ZAP 01" />
               </div>
+              <div className="space-y-2">
+                <Label>Grupo</Label>
+                <Select value={lineGroup} onValueChange={setLineGroup}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {LINE_GROUPS.map((g) => (
+                      <SelectItem key={g} value={g}>{g}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Quantidade de Máquinas</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={machineCount}
+                  onChange={(e) => setMachineCount(e.target.value)}
+                  placeholder="1"
+                />
+              </div>
               <Button onClick={handleSave} className="w-full">Salvar</Button>
             </div>
           </DialogContent>
         </Dialog>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {lines.map((line) => (
-          <Card key={line.id} className={!line.active ? "opacity-60" : ""}>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-base">{line.name}</CardTitle>
-              <div className="flex items-center gap-2">
-                <Switch checked={line.active} onCheckedChange={() => toggleActive(line)} />
-                <Button variant="ghost" size="icon" onClick={() => openEdit(line)}>
-                  <Pencil className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="icon" onClick={() => deleteLine(line.id)}>
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
-              </div>
-            </CardHeader>
-          </Card>
-        ))}
-      </div>
+      {LINE_GROUPS.map((group) => {
+        const groupLines = grouped[group];
+        if (!groupLines || groupLines.length === 0) return null;
+        return (
+          <div key={group} className="space-y-3">
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground border-b pb-1">{group}</h3>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {groupLines.map((line) => (
+                <Card key={line.id} className={!line.active ? "opacity-60" : ""}>
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <div>
+                      <CardTitle className="text-base">{line.name}</CardTitle>
+                      <p className="text-xs text-muted-foreground">{line.machine_count ?? 1} máquina(s)</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Switch checked={line.active} onCheckedChange={() => toggleActive(line)} />
+                      <Button variant="ghost" size="icon" onClick={() => openEdit(line)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => deleteLine(line.id)}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </CardHeader>
+                </Card>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+
+      {ungrouped.length > 0 && (
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground border-b pb-1">Outros</h3>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {ungrouped.map((line) => (
+              <Card key={line.id} className={!line.active ? "opacity-60" : ""}>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <div>
+                    <CardTitle className="text-base">{line.name}</CardTitle>
+                    <p className="text-xs text-muted-foreground">{line.machine_count ?? 1} máquina(s)</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Switch checked={line.active} onCheckedChange={() => toggleActive(line)} />
+                    <Button variant="ghost" size="icon" onClick={() => openEdit(line)}>
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" onClick={() => deleteLine(line.id)}>
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                </CardHeader>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
       {lines.length === 0 && (
         <p className="text-center text-muted-foreground">Nenhuma linha cadastrada.</p>
       )}

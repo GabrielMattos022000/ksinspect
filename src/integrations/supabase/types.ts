@@ -23,6 +23,7 @@ export type Database = {
           id: string
           limit_max: number
           limit_min: number
+          measurement_interval_minutes: number
           name: string
           nominal: number
           product_id: string
@@ -38,6 +39,7 @@ export type Database = {
           id?: string
           limit_max?: number
           limit_min?: number
+          measurement_interval_minutes?: number
           name: string
           nominal?: number
           product_id: string
@@ -53,6 +55,7 @@ export type Database = {
           id?: string
           limit_max?: number
           limit_min?: number
+          measurement_interval_minutes?: number
           name?: string
           nominal?: number
           product_id?: string
@@ -75,6 +78,8 @@ export type Database = {
           active: boolean
           created_at: string
           id: string
+          line_group: string
+          machine_count: number
           name: string
           updated_at: string
         }
@@ -82,6 +87,8 @@ export type Database = {
           active?: boolean
           created_at?: string
           id?: string
+          line_group?: string
+          machine_count?: number
           name: string
           updated_at?: string
         }
@@ -89,6 +96,8 @@ export type Database = {
           active?: boolean
           created_at?: string
           id?: string
+          line_group?: string
+          machine_count?: number
           name?: string
           updated_at?: string
         }
@@ -134,11 +143,13 @@ export type Database = {
       }
       measurement_cycles: {
         Row: {
+          cav: string
           created_at: string
           finished_at: string | null
           id: string
           line_id: string
           machine_id: string
+          maq: string
           operator_badge: string
           overall_result: string | null
           product_id: string
@@ -149,11 +160,13 @@ export type Database = {
           week_cast: string
         }
         Insert: {
+          cav?: string
           created_at?: string
           finished_at?: string | null
           id?: string
           line_id: string
           machine_id: string
+          maq?: string
           operator_badge: string
           overall_result?: string | null
           product_id: string
@@ -164,11 +177,13 @@ export type Database = {
           week_cast: string
         }
         Update: {
+          cav?: string
           created_at?: string
           finished_at?: string | null
           id?: string
           line_id?: string
           machine_id?: string
+          maq?: string
           operator_badge?: string
           overall_result?: string | null
           product_id?: string
