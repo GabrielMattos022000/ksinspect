@@ -3,7 +3,6 @@ import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import {
-  Gauge,
   Factory,
   Package,
   ClipboardList,
@@ -16,6 +15,7 @@ import {
   ChevronRight,
   Users,
 } from "lucide-react";
+import logo from "@/assets/logo.png";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -92,7 +92,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         "flex h-16 items-center border-b border-sidebar-border",
         collapsed ? "justify-center px-2" : "gap-2 px-4"
       )}>
-        <Gauge className="h-6 w-6 shrink-0 text-sidebar-primary" />
+        <img src={logo} alt="KS Logo" className="h-8 w-auto shrink-0" />
         {!collapsed && (
           <span className="text-lg font-bold text-sidebar-primary-foreground">KS Inspection</span>
         )}
@@ -171,7 +171,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       >
         <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-4">
           <div className="flex items-center gap-2">
-            <Gauge className="h-6 w-6 text-sidebar-primary" />
+            <img src={logo} alt="KS Logo" className="h-8 w-auto" />
             <span className="text-lg font-bold text-sidebar-primary-foreground">KS Inspection</span>
           </div>
           <Button variant="ghost" size="icon" onClick={() => setMobileOpen(false)} className="text-sidebar-foreground/70">
