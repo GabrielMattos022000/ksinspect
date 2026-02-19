@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2 } from "lucide-react";
@@ -16,7 +16,6 @@ interface Line {
   id: string;
   name: string;
   active: boolean;
-  machine_count: number;
   line_group: string;
   created_at: string;
   updated_at: string;
@@ -28,7 +27,6 @@ export default function LinesPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Line | null>(null);
   const [name, setName] = useState("");
-  const [machineCount, setMachineCount] = useState("1");
   const [lineGroup, setLineGroup] = useState("Cilmop");
 
   const fetchLines = async () => {
@@ -41,8 +39,7 @@ export default function LinesPage() {
 
   const handleSave = async () => {
     if (!name.trim()) return toast.error("Nome obrigatório");
-    const count = parseInt(machineCount) || 1;
-    const payload = { name: name.trim(), machine_count: count, line_group: lineGroup } as any;
+    const payload = { name: name.trim(), line_group: lineGroup } as any;
     if (editing) {
       const { error } = await supabase.from("lines").update(payload).eq("id", editing.id);
       if (error) return toast.error(error.message);
@@ -54,7 +51,7 @@ export default function LinesPage() {
     }
     setDialogOpen(false);
     setEditing(null);
-    setName(""); setMachineCount("1"); setLineGroup("Cilmop");
+    setName(""); setLineGroup("Cilmop");
     fetchLines();
   };
 
@@ -74,20 +71,18 @@ export default function LinesPage() {
   const openEdit = (line: Line) => {
     setEditing(line);
     setName(line.name);
-    setMachineCount(String(line.machine_count ?? 1));
     setLineGroup(line.line_group ?? "Cilmop");
     setDialogOpen(true);
   };
 
   const openNew = () => {
     setEditing(null);
-    setName(""); setMachineCount("1"); setLineGroup("Cilmop");
+    setName(""); setLineGroup("Cilmop");
     setDialogOpen(true);
   };
 
   if (loading) return <div className="p-4 text-muted-foreground">Carregando...</div>;
 
-  // Group by line_group
   const grouped = LINE_GROUPS.reduce<Record<string, Line[]>>((acc, g) => {
     acc[g] = lines.filter((l) => (l.line_group ?? "Cilmop") === g);
     return acc;
@@ -122,16 +117,6 @@ export default function LinesPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label>Quantidade de Máquinas</Label>
-                <Input
-                  type="number"
-                  min="1"
-                  value={machineCount}
-                  onChange={(e) => setMachineCount(e.target.value)}
-                  placeholder="1"
-                />
-              </div>
               <Button onClick={handleSave} className="w-full">Salvar</Button>
             </div>
           </DialogContent>
@@ -148,10 +133,7 @@ export default function LinesPage() {
               {groupLines.map((line) => (
                 <Card key={line.id} className={!line.active ? "opacity-60" : ""}>
                   <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <div>
-                      <CardTitle className="text-base">{line.name}</CardTitle>
-                      <p className="text-xs text-muted-foreground">{line.machine_count ?? 1} máquina(s)</p>
-                    </div>
+                    <CardTitle className="text-base">{line.name}</CardTitle>
                     <div className="flex items-center gap-2">
                       <Switch checked={line.active} onCheckedChange={() => toggleActive(line)} />
                       <Button variant="ghost" size="icon" onClick={() => openEdit(line)}>
@@ -176,10 +158,7 @@ export default function LinesPage() {
             {ungrouped.map((line) => (
               <Card key={line.id} className={!line.active ? "opacity-60" : ""}>
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <div>
-                    <CardTitle className="text-base">{line.name}</CardTitle>
-                    <p className="text-xs text-muted-foreground">{line.machine_count ?? 1} máquina(s)</p>
-                  </div>
+                  <CardTitle className="text-base">{line.name}</CardTitle>
                   <div className="flex items-center gap-2">
                     <Switch checked={line.active} onCheckedChange={() => toggleActive(line)} />
                     <Button variant="ghost" size="icon" onClick={() => openEdit(line)}>

@@ -15,7 +15,6 @@ type Product = Tables<"products">;
 interface Line {
   id: string;
   name: string;
-  machine_count: number;
   line_group: string;
   active: boolean;
 }
@@ -26,7 +25,6 @@ export default function NewCyclePage() {
   const [lines, setLines] = useState<Line[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [lineId, setLineId] = useState("");
-  const [machineNum, setMachineNum] = useState("");
   const [productId, setProductId] = useState("");
   const [weekCast, setWeekCast] = useState("");
   const [badge, setBadge] = useState("");
@@ -35,18 +33,10 @@ export default function NewCyclePage() {
   const [productSearch, setProductSearch] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const selectedLine = lines.find((l) => l.id === lineId);
-  const machineCount = selectedLine?.machine_count ?? 1;
-  const machineNumbers = Array.from({ length: machineCount }, (_, i) => String(i + 1));
-
   useEffect(() => {
     supabase.from("lines").select("*").eq("active", true).order("name").then(({ data }) => setLines((data as Line[]) ?? []));
     supabase.from("products").select("*").eq("active", true).order("pb").then(({ data }) => setProducts(data ?? []));
   }, []);
-
-  useEffect(() => {
-    setMachineNum("");
-  }, [lineId]);
 
   const weekCastValid = /^\d{1,2}[A-Za-z]$/.test(weekCast);
   const badgeValid = /^\d+$/.test(badge);
@@ -57,29 +47,28 @@ export default function NewCyclePage() {
     return (p.pb + p.ks + (p.formatted_name ?? "")).toLowerCase().includes(s);
   });
 
-  const canStart = lineId && machineNum && productId && weekCastValid && badgeValid && cav.trim() && maq.trim();
+  const canStart = lineId && productId && weekCastValid && badgeValid && cav.trim() && maq.trim();
 
   const handleStart = async () => {
     if (!canStart || !user) return;
     setSubmitting(true);
 
-    // We need to find or create a machine record for this line+machine combo
-    // First check if a machine exists for this line with this number
+    const selectedLine = lines.find((l) => l.id === lineId);
+
+    // Find or create a default machine for this line
     let machineId: string;
     const { data: existingMachine } = await supabase
       .from("machines")
       .select("id")
       .eq("line_id", lineId)
-      .eq("name", machineNum)
       .maybeSingle();
 
     if (existingMachine) {
       machineId = existingMachine.id;
     } else {
-      // Create the machine record on the fly
       const { data: newMachine, error: machineError } = await supabase
         .from("machines")
-        .insert({ line_id: lineId, name: machineNum, machine_group: selectedLine?.line_group ?? "Cilmop" } as any)
+        .insert({ line_id: lineId, name: "1", machine_group: selectedLine?.line_group ?? "Cilmop" } as any)
         .select("id")
         .single();
       if (machineError || !newMachine) {
@@ -89,9 +78,6 @@ export default function NewCyclePage() {
       }
       machineId = newMachine.id;
     }
-
-    // Update product with cav and maq if provided
-    await supabase.from("products").update({ cav: cav.trim(), maq: maq.trim() } as any).eq("id", productId);
 
     // Create cycle
     const { data: cycle, error } = await supabase.from("measurement_cycles").insert({
@@ -144,20 +130,6 @@ export default function NewCyclePage() {
               <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
               <SelectContent>
                 {lines.map((l) => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Máquina</Label>
-            <Select value={machineNum} onValueChange={setMachineNum} disabled={!lineId}>
-              <SelectTrigger>
-                <SelectValue placeholder={lineId ? "Selecione a máquina" : "Selecione a linha primeiro"} />
-              </SelectTrigger>
-              <SelectContent>
-                {machineNumbers.map((n) => (
-                  <SelectItem key={n} value={n}>Máquina {n}</SelectItem>
-                ))}
               </SelectContent>
             </Select>
           </div>
