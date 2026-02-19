@@ -29,7 +29,6 @@ export default function NewCyclePage() {
   const [weekCast, setWeekCast] = useState("");
   const [badge, setBadge] = useState("");
   const [cav, setCav] = useState("");
-  const [maq, setMaq] = useState("");
   const [productSearch, setProductSearch] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -47,7 +46,7 @@ export default function NewCyclePage() {
     return (p.pb + p.ks + (p.formatted_name ?? "")).toLowerCase().includes(s);
   });
 
-  const canStart = lineId && productId && weekCastValid && badgeValid && cav.trim() && maq.trim();
+  const canStart = lineId && productId && weekCastValid && badgeValid && cav.trim();
 
   const handleStart = async () => {
     if (!canStart || !user) return;
@@ -88,7 +87,7 @@ export default function NewCyclePage() {
       operator_badge: badge,
       user_id: user.id,
       cav: cav.trim(),
-      maq: maq.trim(),
+      maq: "",
     } as any).select().single();
 
     if (error || !cycle) {
@@ -152,14 +151,6 @@ export default function NewCyclePage() {
             </Select>
           </div>
 
-          {productId && (
-            <div className="grid grid-cols-2 gap-3 rounded-md border p-3 bg-muted/30">
-              <div className="space-y-2">
-                <Label>Máq</Label>
-                <Input value={maq} onChange={(e) => setMaq(e.target.value)} placeholder="Ex: 01" />
-              </div>
-            </div>
-          )}
 
           <div className="grid grid-cols-3 gap-3">
             <div className="space-y-2">
