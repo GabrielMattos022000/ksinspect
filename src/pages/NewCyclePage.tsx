@@ -155,17 +155,17 @@ export default function NewCyclePage() {
           {productId && (
             <div className="grid grid-cols-2 gap-3 rounded-md border p-3 bg-muted/30">
               <div className="space-y-2">
-                <Label>Cav</Label>
-                <Input value={cav} onChange={(e) => setCav(e.target.value)} placeholder="Ex: 01" />
-              </div>
-              <div className="space-y-2">
                 <Label>Máq</Label>
                 <Input value={maq} onChange={(e) => setMaq(e.target.value)} placeholder="Ex: 01" />
               </div>
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
+            <div className="space-y-2">
+              <Label>Cavidade</Label>
+              <Input value={cav} onChange={(e) => setCav(e.target.value)} placeholder="Ex: 01" />
+            </div>
             <div className="space-y-2">
               <Label>Semana Fundida</Label>
               <Input
