@@ -100,6 +100,7 @@ export type Database = {
           created_at: string
           id: string
           line_id: string
+          machine_group: string
           name: string
           updated_at: string
         }
@@ -108,6 +109,7 @@ export type Database = {
           created_at?: string
           id?: string
           line_id: string
+          machine_group?: string
           name: string
           updated_at?: string
         }
@@ -116,6 +118,7 @@ export type Database = {
           created_at?: string
           id?: string
           line_id?: string
+          machine_group?: string
           name?: string
           updated_at?: string
         }
