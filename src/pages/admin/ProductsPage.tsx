@@ -32,9 +32,7 @@ export default function ProductsPage() {
 
   const handleSave = async () => {
     if (!pb.trim() || !ks.trim()) return toast.error("Preencha PB e KS");
-    // formatted_name will be set by the DB trigger or we set it here
-    const formattedName = `PB: ${pb.trim()} KS: ${ks.trim()}`;
-    const payload = { pb: pb.trim(), ks: ks.trim(), cav: "", maq: "", formatted_name: formattedName };
+    const payload = { pb: pb.trim(), ks: ks.trim(), cav: "", maq: "" };
     if (editing) {
       const { error } = await supabase.from("products").update(payload).eq("id", editing.id);
       if (error) return toast.error(error.message);
