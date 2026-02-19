@@ -15,7 +15,7 @@ import {
   ChevronRight,
   Users,
 } from "lucide-react";
-import logo from "@/assets/logo.png";
+import logo from "@/assets/logo-sidebar.png";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
