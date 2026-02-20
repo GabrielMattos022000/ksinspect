@@ -96,7 +96,7 @@ export default function HistoryPage() {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-xl font-semibold">Histórico de Ciclos</h2>
+      <h2 className="text-xl font-semibold sr-only">Histórico de Ciclos</h2>
 
       {/* Filters */}
       <div className="rounded-lg border bg-card p-4 space-y-3">
