@@ -155,8 +155,8 @@ export default function MonitoringPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center gap-3">
-        <h2 className="text-xl font-semibold flex-1 sr-only">Monitoramento</h2>
+      <div className="flex flex-wrap items-center justify-end gap-3">
+        <h2 className="text-xl font-semibold sr-only">Monitoramento</h2>
 
         <div className="flex items-center gap-2">
           <Filter className="h-4 w-4 text-muted-foreground" />
