@@ -234,7 +234,7 @@ export default function MonitoringPage() {
                     {cardSize === "sm" ? (
                       // Mini card
                       <div className="p-2 space-y-1">
-                        <p className="text-xs font-semibold truncate">{item.line_name} / {item.machine_num}</p>
+                        <p className="text-xs font-semibold truncate">{item.line_name}</p>
                         <div className="flex gap-1 flex-wrap">
                           {hasData && (
                             <Badge className={cn("text-[10px] px-1 py-0", isOk ? "bg-success text-success-foreground" : "bg-destructive text-destructive-foreground")}>
@@ -254,7 +254,7 @@ export default function MonitoringPage() {
                         <CardHeader className={cn("pb-2", cardSize === "lg" ? "p-4" : "p-3")}>
                           <div className="flex items-start justify-between gap-2">
                             <CardTitle className={cn("leading-tight", cardSize === "lg" ? "text-base" : "text-sm")}>
-                              {item.line_name} / Máq {item.machine_num}
+                              {item.line_name}
                             </CardTitle>
                             {isOk ? (
                               <CheckCircle2 className="h-5 w-5 text-success shrink-0" />
