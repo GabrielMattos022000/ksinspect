@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, ArrowLeft, Clock } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -12,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { Tables } from "@/integrations/supabase/types";
 
-type Characteristic = Tables<"characteristics"> & { measurement_interval_minutes?: number };
+type Characteristic = Tables<"characteristics">;
 type Product = Tables<"products">;
 
 const INTERVAL_OPTIONS = [
@@ -40,6 +41,7 @@ export default function CharacteristicsPage() {
   const [limitMin, setLimitMin] = useState("");
   const [limitMax, setLimitMax] = useState("");
   const [intervalMinutes, setIntervalMinutes] = useState("60");
+  const [isCritical, setIsCritical] = useState(false);
 
   const fetchData = async () => {
     const [{ data: p }, { data: c }] = await Promise.all([
@@ -64,6 +66,7 @@ export default function CharacteristicsPage() {
       product_id: productId!,
       sort_order: editing ? editing.sort_order : chars.length,
       measurement_interval_minutes: parseInt(intervalMinutes) || 60,
+      is_critical: isCritical,
     } as any;
     if (editing) {
       const { error } = await supabase.from("characteristics").update(payload).eq("id", editing.id);
@@ -81,7 +84,7 @@ export default function CharacteristicsPage() {
   };
 
   const resetForm = () => {
-    setName(""); setUnit("mm"); setNominal(""); setLimitMin(""); setLimitMax(""); setIntervalMinutes("60");
+    setName(""); setUnit("mm"); setNominal(""); setLimitMin(""); setLimitMax(""); setIntervalMinutes("60"); setIsCritical(false);
   };
 
   const toggleActive = async (c: Characteristic) => {
@@ -104,6 +107,7 @@ export default function CharacteristicsPage() {
     setLimitMin(String(c.limit_min));
     setLimitMax(String(c.limit_max));
     setIntervalMinutes(String(c.measurement_interval_minutes ?? 60));
+    setIsCritical(c.is_critical ?? false);
     setDialogOpen(true);
   };
 
@@ -190,6 +194,16 @@ export default function CharacteristicsPage() {
                 </SelectContent>
               </Select>
             </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="is_critical"
+                checked={isCritical}
+                onCheckedChange={(checked) => setIsCritical(checked === true)}
+              />
+              <Label htmlFor="is_critical" className="text-sm font-medium cursor-pointer">
+                Dimensão Crítica
+              </Label>
+            </div>
             <Button onClick={handleSave} className="w-full">Salvar</Button>
           </div>
         </DialogContent>
@@ -204,7 +218,10 @@ export default function CharacteristicsPage() {
                 <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => moveChar(i, 1)} disabled={i === chars.length - 1}>▼</Button>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm">{c.name}</p>
+                <p className="font-medium text-sm">
+                  {c.name}
+                  {c.is_critical && <span className="ml-1.5 text-[10px] font-bold text-destructive uppercase">Crítica</span>}
+                </p>
                 <p className="text-xs text-muted-foreground">
                   {c.unit} | Nom: {c.nominal} | Min: {c.limit_min} | Max: {c.limit_max}
                 </p>
