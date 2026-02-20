@@ -91,7 +91,7 @@ export default function LinesPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-end">
         <h2 className="text-xl font-semibold sr-only">Linhas (ZAP)</h2>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
