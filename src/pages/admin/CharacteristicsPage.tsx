@@ -145,7 +145,7 @@ export default function CharacteristicsPage() {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
-          <h2 className="text-xl font-semibold">Características</h2>
+          <h2 className="text-xl font-semibold sr-only">Características</h2>
           <p className="text-sm text-muted-foreground">PB: {product?.pb} KS: {product?.ks}</p>
         </div>
         <div className="ml-auto">

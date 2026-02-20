@@ -74,7 +74,7 @@ export default function DashboardPage() {
   if (items.length === 0) {
     return (
       <div className="space-y-4">
-        <h2 className="text-xl font-semibold">Status das Linhas / Máquinas</h2>
+        <h2 className="text-xl font-semibold sr-only">Status das Linhas / Máquinas</h2>
         <p className="text-center text-muted-foreground">Nenhuma medição finalizada ainda.</p>
       </div>
     );
@@ -87,7 +87,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <h2 className="text-xl font-semibold">Status das Linhas / Máquinas</h2>
+      <h2 className="text-xl font-semibold sr-only">Status das Linhas / Máquinas</h2>
       {MACHINE_GROUPS.map((group) => {
         const groupItems = grouped[group];
         if (groupItems.length === 0) return null;
