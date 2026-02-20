@@ -21,6 +21,7 @@ export type Database = {
           device_image_path: string | null
           drawing_image_path: string | null
           id: string
+          is_critical: boolean
           limit_max: number
           limit_min: number
           measurement_interval_minutes: number
@@ -37,6 +38,7 @@ export type Database = {
           device_image_path?: string | null
           drawing_image_path?: string | null
           id?: string
+          is_critical?: boolean
           limit_max?: number
           limit_min?: number
           measurement_interval_minutes?: number
@@ -53,6 +55,7 @@ export type Database = {
           device_image_path?: string | null
           drawing_image_path?: string | null
           id?: string
+          is_critical?: boolean
           limit_max?: number
           limit_min?: number
           measurement_interval_minutes?: number
