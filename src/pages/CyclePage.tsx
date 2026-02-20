@@ -21,6 +21,7 @@ interface MeasurementRow {
   char_limit_min: number;
   char_limit_max: number;
   char_sort_order: number;
+  char_is_critical: boolean;
 }
 
 interface CycleInfo {
@@ -118,7 +119,7 @@ export default function CyclePage() {
     // Fetch measurements with characteristics
     const { data: mData } = await supabase
       .from("measurements")
-      .select("*, characteristics(name, unit, nominal, limit_min, limit_max, sort_order)")
+      .select("*, characteristics(name, unit, nominal, limit_min, limit_max, sort_order, is_critical)")
       .eq("cycle_id", cycleId!)
       .order("id");
 
@@ -134,6 +135,7 @@ export default function CyclePage() {
       char_limit_min: m.characteristics?.limit_min ?? 0,
       char_limit_max: m.characteristics?.limit_max ?? 0,
       char_sort_order: m.characteristics?.sort_order ?? 0,
+      char_is_critical: m.characteristics?.is_critical ?? false,
     }));
 
     mapped.sort((a, b) => a.char_sort_order - b.char_sort_order);
@@ -254,7 +256,10 @@ export default function CyclePage() {
               <CardContent className="p-3">
                 <div className="flex items-center gap-3">
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium">{row.char_name}</p>
+                    <p className="text-sm font-medium">
+                      {row.char_name}
+                      {row.char_is_critical && <span className="ml-1.5 text-[10px] font-bold text-destructive uppercase">Crítica</span>}
+                    </p>
                     <p className="text-xs text-muted-foreground">
                       {row.char_unit} | Nom: {row.char_nominal} | [{row.char_limit_min} – {row.char_limit_max}]
                     </p>
