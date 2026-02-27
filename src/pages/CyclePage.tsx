@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { CheckCircle2, XCircle, Download } from "lucide-react";
+import { getPublicUrl } from "@/components/CharacteristicImageUpload";
 
 interface MeasurementRow {
   id: string;
@@ -22,6 +23,8 @@ interface MeasurementRow {
   char_limit_max: number;
   char_sort_order: number;
   char_is_critical: boolean;
+  char_device_image_path: string | null;
+  char_drawing_image_path: string | null;
 }
 
 interface CycleInfo {
@@ -119,7 +122,7 @@ export default function CyclePage() {
     // Fetch measurements with characteristics
     const { data: mData } = await supabase
       .from("measurements")
-      .select("*, characteristics(name, unit, nominal, limit_min, limit_max, sort_order, is_critical)")
+      .select("*, characteristics(name, unit, nominal, limit_min, limit_max, sort_order, is_critical, device_image_path, drawing_image_path)")
       .eq("cycle_id", cycleId!)
       .order("id");
 
@@ -136,6 +139,8 @@ export default function CyclePage() {
       char_limit_max: m.characteristics?.limit_max ?? 0,
       char_sort_order: m.characteristics?.sort_order ?? 0,
       char_is_critical: m.characteristics?.is_critical ?? false,
+      char_device_image_path: m.characteristics?.device_image_path ?? null,
+      char_drawing_image_path: m.characteristics?.drawing_image_path ?? null,
     }));
 
     mapped.sort((a, b) => a.char_sort_order - b.char_sort_order);
@@ -289,7 +294,31 @@ export default function CyclePage() {
                     )}
                   </div>
                 </div>
-              </CardContent>
+                {(row.char_device_image_path || row.char_drawing_image_path) && (
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    {row.char_device_image_path && (
+                      <div>
+                        <p className="text-[10px] text-muted-foreground mb-1">Dispositivo</p>
+                        <img
+                          src={getPublicUrl(row.char_device_image_path)!}
+                          alt="Dispositivo de medição"
+                          className="w-full h-24 object-contain rounded border bg-muted"
+                        />
+                      </div>
+                    )}
+                    {row.char_drawing_image_path && (
+                      <div>
+                        <p className="text-[10px] text-muted-foreground mb-1">Desenho</p>
+                        <img
+                          src={getPublicUrl(row.char_drawing_image_path)!}
+                          alt="Dimensão no desenho"
+                          className="w-full h-24 object-contain rounded border bg-muted"
+                        />
+                      </div>
+                    )}
+                   </div>
+                 )}
+               </CardContent>
             </Card>
           );
         })}
