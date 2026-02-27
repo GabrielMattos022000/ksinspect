@@ -11,6 +11,7 @@ import { Plus, Pencil, Trash2, ArrowLeft, Clock } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import CharacteristicImageUpload, { getPublicUrl } from "@/components/CharacteristicImageUpload";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Characteristic = Tables<"characteristics">;
@@ -42,6 +43,8 @@ export default function CharacteristicsPage() {
   const [limitMax, setLimitMax] = useState("");
   const [intervalMinutes, setIntervalMinutes] = useState("60");
   const [isCritical, setIsCritical] = useState(false);
+  const [deviceImagePath, setDeviceImagePath] = useState<string | null>(null);
+  const [drawingImagePath, setDrawingImagePath] = useState<string | null>(null);
 
   const fetchData = async () => {
     const [{ data: p }, { data: c }] = await Promise.all([
@@ -67,6 +70,8 @@ export default function CharacteristicsPage() {
       sort_order: editing ? editing.sort_order : chars.length,
       measurement_interval_minutes: parseInt(intervalMinutes) || 60,
       is_critical: isCritical,
+      device_image_path: deviceImagePath,
+      drawing_image_path: drawingImagePath,
     } as any;
     if (editing) {
       const { error } = await supabase.from("characteristics").update(payload).eq("id", editing.id);
@@ -84,7 +89,7 @@ export default function CharacteristicsPage() {
   };
 
   const resetForm = () => {
-    setName(""); setUnit("mm"); setNominal(""); setLimitMin(""); setLimitMax(""); setIntervalMinutes("60"); setIsCritical(false);
+    setName(""); setUnit("mm"); setNominal(""); setLimitMin(""); setLimitMax(""); setIntervalMinutes("60"); setIsCritical(false); setDeviceImagePath(null); setDrawingImagePath(null);
   };
 
   const toggleActive = async (c: Characteristic) => {
@@ -108,6 +113,8 @@ export default function CharacteristicsPage() {
     setLimitMax(String(c.limit_max));
     setIntervalMinutes(String(c.measurement_interval_minutes ?? 60));
     setIsCritical(c.is_critical ?? false);
+    setDeviceImagePath(c.device_image_path);
+    setDrawingImagePath(c.drawing_image_path);
     setDialogOpen(true);
   };
 
@@ -193,6 +200,18 @@ export default function CharacteristicsPage() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <CharacteristicImageUpload
+                label="Imagem do Dispositivo"
+                currentPath={deviceImagePath}
+                onUploaded={setDeviceImagePath}
+              />
+              <CharacteristicImageUpload
+                label="Imagem do Desenho"
+                currentPath={drawingImagePath}
+                onUploaded={setDrawingImagePath}
+              />
             </div>
             <div className="flex items-center gap-2">
               <Checkbox
