@@ -6,8 +6,9 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Plus, Pencil, UserCog } from "lucide-react";
+import { Plus, UserCog, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface UserProfile {
@@ -22,6 +23,8 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<UserProfile | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // New user form
   const [newName, setNewName] = useState("");
@@ -37,7 +40,6 @@ export default function UsersPage() {
     const roleMap = new Map<string, "admin" | "operador">();
     (roles ?? []).forEach((r) => roleMap.set(r.user_id, r.role));
 
-    // We can't fetch emails from client, so we'll show what we have
     const userList: UserProfile[] = (profiles ?? []).map((p) => ({
       user_id: p.user_id,
       full_name: p.full_name,
@@ -58,7 +60,6 @@ export default function UsersPage() {
     if (newPassword.length < 6) return toast.error("Senha deve ter ao menos 6 caracteres");
     setSaving(true);
 
-    // Use admin signup via supabase auth
     const { data, error } = await supabase.auth.signUp({
       email: newEmail.trim(),
       password: newPassword.trim(),
@@ -75,7 +76,6 @@ export default function UsersPage() {
     }
 
     if (data.user) {
-      // Assign role
       await supabase.from("user_roles").insert({ user_id: data.user.id, role: newRole });
     }
 
@@ -87,7 +87,6 @@ export default function UsersPage() {
   };
 
   const handleChangeRole = async (userId: string, newRoleValue: "admin" | "operador") => {
-    // Upsert role
     const { data: existing } = await supabase.from("user_roles").select("id").eq("user_id", userId).maybeSingle();
     if (existing) {
       const { error } = await supabase.from("user_roles").update({ role: newRoleValue }).eq("user_id", userId);
@@ -100,6 +99,25 @@ export default function UsersPage() {
     fetchUsers();
   };
 
+  const handleDeleteUser = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+
+    const { data, error } = await supabase.functions.invoke("delete-user", {
+      body: { user_id: deleteTarget.user_id },
+    });
+
+    if (error || data?.error) {
+      toast.error(data?.error || error?.message || "Erro ao excluir usuário");
+    } else {
+      toast.success("Usuário excluído com sucesso");
+      fetchUsers();
+    }
+
+    setDeleting(false);
+    setDeleteTarget(null);
+  };
+
   const openNew = () => {
     setEditingUser(null);
     setNewName(""); setNewEmail(""); setNewPassword(""); setNewRole("operador");
@@ -110,7 +128,7 @@ export default function UsersPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-end">
         <h2 className="text-xl font-semibold sr-only">Usuários</h2>
         <Button onClick={openNew}><Plus className="mr-2 h-4 w-4" />Novo Usuário</Button>
       </div>
@@ -150,6 +168,24 @@ export default function UsersPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Delete confirmation */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Usuário</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o usuário <strong>{deleteTarget?.full_name || "Sem nome"}</strong>? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteUser} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {deleting ? "Excluindo..." : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {users.map((u) => (
           <Card key={u.user_id}>
@@ -167,7 +203,15 @@ export default function UsersPage() {
               </div>
             </CardHeader>
             <CardContent className="pt-0 pb-3">
-              <div className="flex items-center justify-end gap-2">
+              <div className="flex items-center justify-between gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                  onClick={() => setDeleteTarget(u)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
                 <Select
                   value={u.role ?? "operador"}
                   onValueChange={(v) => handleChangeRole(u.user_id, v as "admin" | "operador")}
