@@ -295,24 +295,24 @@ export default function CyclePage() {
                   </div>
                 </div>
                 {(row.char_device_image_path || row.char_drawing_image_path) && (
-                  <div className="grid grid-cols-2 gap-2 mt-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
                     {row.char_device_image_path && (
                       <div>
-                        <p className="text-[10px] text-muted-foreground mb-1">Dispositivo</p>
+                        <p className="text-xs font-medium text-muted-foreground mb-1">Dispositivo</p>
                         <img
                           src={getPublicUrl(row.char_device_image_path)!}
                           alt="Dispositivo de medição"
-                          className="w-full h-24 object-contain rounded border bg-muted"
+                          className="w-full h-48 sm:h-56 object-contain rounded-md border bg-muted p-1"
                         />
                       </div>
                     )}
                     {row.char_drawing_image_path && (
                       <div>
-                        <p className="text-[10px] text-muted-foreground mb-1">Desenho</p>
+                        <p className="text-xs font-medium text-muted-foreground mb-1">Desenho Técnico</p>
                         <img
                           src={getPublicUrl(row.char_drawing_image_path)!}
                           alt="Dimensão no desenho"
-                          className="w-full h-24 object-contain rounded border bg-muted"
+                          className="w-full h-48 sm:h-56 object-contain rounded-md border bg-muted p-1"
                         />
                       </div>
                     )}
