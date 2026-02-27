@@ -226,9 +226,6 @@ export default function CyclePage() {
             </div>
             <div className="flex items-center gap-2 text-base">
               <span className="font-medium">{filledCount}/{rows.length}</span>
-              {nokCount > 0 && (
-                <Badge variant="destructive" className="text-sm">{nokCount} REPROVADO(S)</Badge>
-              )}
               {allFilled && (
                 <Badge className={`text-sm ${overallOk ? "bg-success text-success-foreground" : "bg-destructive text-destructive-foreground"}`}>
                   {overallOk ? "APROVADO" : "REPROVADO"}
