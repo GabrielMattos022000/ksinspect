@@ -47,7 +47,7 @@ function generateTxt(cycle: CycleInfo, rows: MeasurementRow[]): { filename: stri
   const dateStr = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}`;
   const timeStr = `${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
   const lineName = cycle.line_name.replace(/\s+/g, "");
-  const overallResult = rows.some((r) => !r.within_limits) ? "NOK" : "OK";
+  const overallResult = rows.some((r) => !r.within_limits) ? "REPROVADO" : "APROVADO";
 
   const filename = `${lineName}_${cycle.product_pb}_${cycle.product_ks}_CAV${cycle.cav}_${cycle.week_cast}_OP${cycle.operator_badge}_${dateStr}_${timeStr}.txt`;
 
@@ -66,7 +66,7 @@ function generateTxt(cycle: CycleInfo, rows: MeasurementRow[]): { filename: stri
   const charLines = rows
     .sort((a, b) => a.char_sort_order - b.char_sort_order)
     .map((r) => {
-      const status = r.within_limits ? "OK" : "NOK";
+      const status = r.within_limits ? "APROVADO" : "REPROVADO";
       return `${r.char_name};${r.char_unit};${r.char_nominal};${r.char_limit_max};${r.char_limit_min};${r.measured_value};${status}`;
     })
     .join("\n");
@@ -227,11 +227,11 @@ export default function CyclePage() {
             <div className="flex items-center gap-2 text-base">
               <span className="font-medium">{filledCount}/{rows.length}</span>
               {nokCount > 0 && (
-                <Badge variant="destructive" className="text-sm">{nokCount} NOK</Badge>
+                <Badge variant="destructive" className="text-sm">{nokCount} REPROVADO(S)</Badge>
               )}
               {allFilled && (
                 <Badge className={`text-sm ${overallOk ? "bg-success text-success-foreground" : "bg-destructive text-destructive-foreground"}`}>
-                  {overallOk ? "OK" : "NOK"}
+                  {overallOk ? "APROVADO" : "REPROVADO"}
                 </Badge>
               )}
               {isFinished && (
