@@ -214,28 +214,28 @@ export default function CyclePage() {
   if (!cycle) return <div className="p-4 text-destructive">Ciclo não encontrado.</div>;
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4">
+    <div className="mx-auto max-w-4xl space-y-5">
       {/* Summary */}
       <Card>
-        <CardContent className="p-4">
-          <div className="flex flex-wrap items-center gap-3">
+        <CardContent className="p-5">
+          <div className="flex flex-wrap items-center gap-4">
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium">{cycle.line_name}</p>
-              <p className="text-xs text-muted-foreground">{cycle.product_formatted_name}</p>
-              <p className="text-xs text-muted-foreground">Semana: {cycle.week_cast} | OP: {cycle.operator_badge}</p>
+              <p className="text-base font-semibold">{cycle.line_name}</p>
+              <p className="text-sm text-muted-foreground">{cycle.product_formatted_name}</p>
+              <p className="text-sm text-muted-foreground">Semana: {cycle.week_cast} | OP: {cycle.operator_badge}</p>
             </div>
-            <div className="flex items-center gap-2 text-sm">
-              <span>{filledCount}/{rows.length}</span>
+            <div className="flex items-center gap-2 text-base">
+              <span className="font-medium">{filledCount}/{rows.length}</span>
               {nokCount > 0 && (
-                <Badge variant="destructive">{nokCount} NOK</Badge>
+                <Badge variant="destructive" className="text-sm">{nokCount} NOK</Badge>
               )}
               {allFilled && (
-                <Badge className={overallOk ? "bg-success text-success-foreground" : "bg-destructive text-destructive-foreground"}>
+                <Badge className={`text-sm ${overallOk ? "bg-success text-success-foreground" : "bg-destructive text-destructive-foreground"}`}>
                   {overallOk ? "OK" : "NOK"}
                 </Badge>
               )}
               {isFinished && (
-                <Badge variant="secondary">Finalizado</Badge>
+                <Badge variant="secondary" className="text-sm">Finalizado</Badge>
               )}
             </div>
           </div>
@@ -243,7 +243,7 @@ export default function CyclePage() {
       </Card>
 
       {/* Measurement rows */}
-      <div className="space-y-2">
+      <div className="space-y-3">
         {rows.map((row) => {
           const val = inputValues[row.id] ?? "";
           const hasValue = row.measured_value != null;
@@ -258,22 +258,22 @@ export default function CyclePage() {
                 isOk ? "border-success/50 bg-success/5" : ""
               }
             >
-              <CardContent className="p-3">
-                <div className="flex items-center gap-3">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-4">
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium">
+                    <p className="text-base font-semibold">
                       {row.char_name}
-                      {row.char_is_critical && <span className="ml-1.5 text-[10px] font-bold text-destructive uppercase">Crítica</span>}
+                      {row.char_is_critical && <span className="ml-2 text-xs font-bold text-destructive uppercase">Crítica</span>}
                     </p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-sm text-muted-foreground">
                       {row.char_unit} | Nom: {row.char_nominal} | [{row.char_limit_min} – {row.char_limit_max}]
                     </p>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
                     <Input
                       type="number"
                       step="any"
-                      className="w-28"
+                      className="w-32 h-10 text-base"
                       value={val}
                       onChange={(e) => setInputValues((prev) => ({ ...prev, [row.id]: e.target.value }))}
                       onBlur={(e) => handleValueChange(row, e.target.value)}
@@ -282,37 +282,39 @@ export default function CyclePage() {
                     />
                     {hasValue && (
                       <>
-                        <span className="text-xs w-16 text-right tabular-nums">
+                        <span className="text-sm w-20 text-right tabular-nums font-medium">
                           Δ {row.deviation?.toFixed(3)}
                         </span>
                         {isOk ? (
-                          <CheckCircle2 className="h-5 w-5 text-success shrink-0" />
+                          <CheckCircle2 className="h-6 w-6 text-success shrink-0" />
                         ) : (
-                          <XCircle className="h-5 w-5 text-destructive shrink-0" />
+                          <XCircle className="h-6 w-6 text-destructive shrink-0" />
                         )}
                       </>
                     )}
                   </div>
                 </div>
                 {(row.char_device_image_path || row.char_drawing_image_path) && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
                     {row.char_device_image_path && (
                       <div>
-                        <p className="text-xs font-medium text-muted-foreground mb-1">Dispositivo</p>
+                        <p className="text-sm font-medium text-muted-foreground mb-1.5">Dispositivo</p>
                         <img
                           src={getPublicUrl(row.char_device_image_path)!}
                           alt="Dispositivo de medição"
-                          className="w-full h-48 sm:h-56 object-contain rounded-md border bg-muted p-1"
+                          className="w-full object-contain rounded-md border bg-muted p-1"
+                          style={{ minHeight: 355, minWidth: 364 }}
                         />
                       </div>
                     )}
                     {row.char_drawing_image_path && (
                       <div>
-                        <p className="text-xs font-medium text-muted-foreground mb-1">Desenho Técnico</p>
+                        <p className="text-sm font-medium text-muted-foreground mb-1.5">Desenho Técnico</p>
                         <img
                           src={getPublicUrl(row.char_drawing_image_path)!}
                           alt="Dimensão no desenho"
-                          className="w-full h-48 sm:h-56 object-contain rounded-md border bg-muted p-1"
+                          className="w-full object-contain rounded-md border bg-muted p-1"
+                          style={{ minHeight: 355, minWidth: 364 }}
                         />
                       </div>
                     )}
