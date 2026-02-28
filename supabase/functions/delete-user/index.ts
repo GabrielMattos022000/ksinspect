@@ -1,8 +1,8 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 Deno.serve(async (req) => {
@@ -11,13 +11,13 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Verify the caller is an admin
     const authHeader = req.headers.get("Authorization")!;
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
     // Client with caller's token to check role
-    const callerClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!, {
+    const callerClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     });
 
@@ -52,7 +52,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Prevent self-deletion
     if (user_id === caller.id) {
       return new Response(JSON.stringify({ error: "Não é possível excluir a si mesmo" }), {
         status: 400,
@@ -63,11 +62,9 @@ Deno.serve(async (req) => {
     // Admin client to delete user
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    // Delete related data first
     await adminClient.from("user_roles").delete().eq("user_id", user_id);
     await adminClient.from("profiles").delete().eq("user_id", user_id);
 
-    // Delete auth user
     const { error } = await adminClient.auth.admin.deleteUser(user_id);
     if (error) {
       return new Response(JSON.stringify({ error: error.message }), {
