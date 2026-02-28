@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { CheckCircle2, XCircle, Download } from "lucide-react";
+import { CheckCircle2, XCircle, Download, ArrowLeft } from "lucide-react";
 import { getPublicUrl } from "@/components/CharacteristicImageUpload";
 
 interface MeasurementRow {
@@ -215,6 +215,10 @@ export default function CyclePage() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-5">
+      <Button variant="ghost" size="sm" onClick={() => navigate("/cycle/new")} className="gap-1">
+        <ArrowLeft className="h-4 w-4" />
+        Novo Ciclo de Medição
+      </Button>
       {/* Summary */}
       <Card>
         <CardContent className="p-5">
