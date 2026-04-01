@@ -68,6 +68,9 @@ function generateTxt(cycle: CycleInfo, rows: MeasurementRow[]): { filename: stri
     .sort((a, b) => a.char_sort_order - b.char_sort_order)
     .map((r) => {
       const status = r.within_limits ? "APROVADO" : "REPROVADO";
+      if (r.char_type === "attribute") {
+        return `${r.char_name};ATRIBUTO;-;-;-;${status};${status}`;
+      }
       return `${r.char_name};${r.char_unit};${r.char_nominal};${r.char_limit_max};${r.char_limit_min};${r.measured_value};${status}`;
     })
     .join("\n");
