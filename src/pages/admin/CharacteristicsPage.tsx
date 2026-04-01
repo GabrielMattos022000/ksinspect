@@ -37,6 +37,7 @@ export default function CharacteristicsPage() {
 
   // Form state
   const [name, setName] = useState("");
+  const [charType, setCharType] = useState<"variable" | "attribute">("variable");
   const [unit, setUnit] = useState("mm");
   const [nominal, setNominal] = useState("");
   const [limitMin, setLimitMin] = useState("");
