@@ -165,8 +165,10 @@ export default function CyclePage() {
     const numVal = parseFloat(val);
     if (isNaN(numVal)) return;
 
-    const deviation = parseFloat((numVal - row.char_nominal).toFixed(6));
-    const withinLimits = numVal >= row.char_limit_min && numVal <= row.char_limit_max;
+    const deviation = row.char_type === "attribute" ? 0 : parseFloat((numVal - row.char_nominal).toFixed(6));
+    const withinLimits = row.char_type === "attribute"
+      ? numVal === 1
+      : numVal >= row.char_limit_min && numVal <= row.char_limit_max;
 
     await supabase.from("measurements").update({
       measured_value: numVal,
@@ -181,6 +183,27 @@ export default function CyclePage() {
       prev.map((r) =>
         r.id === row.id
           ? { ...r, measured_value: numVal, deviation, within_limits: withinLimits }
+          : r
+      )
+    );
+  };
+
+  const handleAttributeChange = async (row: MeasurementRow, approved: boolean) => {
+    const numVal = approved ? 1 : 0;
+    setInputValues((prev) => ({ ...prev, [row.id]: String(numVal) }));
+
+    await supabase.from("measurements").update({
+      measured_value: numVal,
+      deviation: 0,
+      within_limits: approved,
+      updated_by: user?.id,
+      updated_at: new Date().toISOString(),
+    }).eq("id", row.id);
+
+    setRows((prev) =>
+      prev.map((r) =>
+        r.id === row.id
+          ? { ...r, measured_value: numVal, deviation: 0, within_limits: approved }
           : r
       )
     );
