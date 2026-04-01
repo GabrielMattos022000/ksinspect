@@ -142,6 +142,7 @@ export default function CyclePage() {
       char_is_critical: m.characteristics?.is_critical ?? false,
       char_device_image_path: m.characteristics?.device_image_path ?? null,
       char_drawing_image_path: m.characteristics?.drawing_image_path ?? null,
+      char_type: m.characteristics?.characteristic_type ?? "variable",
     }));
 
     mapped.sort((a, b) => a.char_sort_order - b.char_sort_order);
