@@ -175,23 +175,42 @@ export default function CharacteristicsPage() {
               <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="PI Cubo x Saia" />
             </div>
             <div className="space-y-2">
-              <Label>Unidade</Label>
-              <Input value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="mm" />
+              <Label>Tipo</Label>
+              <Select value={charType} onValueChange={(v) => setCharType(v as "variable" | "attribute")}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="variable">Variável</SelectItem>
+                  <SelectItem value="attribute">Atributo</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            <div className="grid grid-cols-3 gap-3">
-              <div className="space-y-2">
-                <Label>Nominal</Label>
-                <Input type="number" step="any" value={nominal} onChange={(e) => setNominal(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Mín</Label>
-                <Input type="number" step="any" value={limitMin} onChange={(e) => setLimitMin(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Máx</Label>
-                <Input type="number" step="any" value={limitMax} onChange={(e) => setLimitMax(e.target.value)} />
-              </div>
-            </div>
+            {charType === "variable" && (
+              <>
+                <div className="space-y-2">
+                  <Label>Unidade</Label>
+                  <Input value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="mm" />
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-2">
+                    <Label>Nominal</Label>
+                    <Input type="number" step="any" value={nominal} onChange={(e) => setNominal(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Mín</Label>
+                    <Input type="number" step="any" value={limitMin} onChange={(e) => setLimitMin(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Máx</Label>
+                    <Input type="number" step="any" value={limitMax} onChange={(e) => setLimitMax(e.target.value)} />
+                  </div>
+                </div>
+              </>
+            )}
+            {charType === "attribute" && (
+              <p className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
+                Atributo: o operador selecionará apenas <strong>Aprovado</strong> ou <strong>Reprovado</strong> na inspeção.
+              </p>
+            )}
             <div className="space-y-2">
               <Label className="flex items-center gap-1">
                 <Clock className="h-3.5 w-3.5" /> Intervalo de Medição
