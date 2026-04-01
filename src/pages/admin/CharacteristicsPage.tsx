@@ -37,6 +37,7 @@ export default function CharacteristicsPage() {
 
   // Form state
   const [name, setName] = useState("");
+  const [charType, setCharType] = useState<"variable" | "attribute">("variable");
   const [unit, setUnit] = useState("mm");
   const [nominal, setNominal] = useState("");
   const [limitMin, setLimitMin] = useState("");
@@ -60,12 +61,14 @@ export default function CharacteristicsPage() {
 
   const handleSave = async () => {
     if (!name.trim()) return toast.error("Nome obrigatório");
+    const isAttribute = charType === "attribute";
     const payload = {
       name: name.trim(),
-      unit,
-      nominal: parseFloat(nominal) || 0,
-      limit_min: parseFloat(limitMin) || 0,
-      limit_max: parseFloat(limitMax) || 0,
+      characteristic_type: charType,
+      unit: isAttribute ? "-" : unit,
+      nominal: isAttribute ? 0 : (parseFloat(nominal) || 0),
+      limit_min: isAttribute ? 0 : (parseFloat(limitMin) || 0),
+      limit_max: isAttribute ? 0 : (parseFloat(limitMax) || 0),
       product_id: productId!,
       sort_order: editing ? editing.sort_order : chars.length,
       measurement_interval_minutes: parseInt(intervalMinutes) || 60,
@@ -89,7 +92,7 @@ export default function CharacteristicsPage() {
   };
 
   const resetForm = () => {
-    setName(""); setUnit("mm"); setNominal(""); setLimitMin(""); setLimitMax(""); setIntervalMinutes("60"); setIsCritical(false); setDeviceImagePath(null); setDrawingImagePath(null);
+    setName(""); setCharType("variable"); setUnit("mm"); setNominal(""); setLimitMin(""); setLimitMax(""); setIntervalMinutes("60"); setIsCritical(false); setDeviceImagePath(null); setDrawingImagePath(null);
   };
 
   const toggleActive = async (c: Characteristic) => {
@@ -107,6 +110,7 @@ export default function CharacteristicsPage() {
   const openEdit = (c: Characteristic) => {
     setEditing(c);
     setName(c.name);
+    setCharType(((c as any).characteristic_type as "variable" | "attribute") ?? "variable");
     setUnit(c.unit);
     setNominal(String(c.nominal));
     setLimitMin(String(c.limit_min));
@@ -171,23 +175,42 @@ export default function CharacteristicsPage() {
               <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="PI Cubo x Saia" />
             </div>
             <div className="space-y-2">
-              <Label>Unidade</Label>
-              <Input value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="mm" />
+              <Label>Tipo</Label>
+              <Select value={charType} onValueChange={(v) => setCharType(v as "variable" | "attribute")}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="variable">Variável</SelectItem>
+                  <SelectItem value="attribute">Atributo</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            <div className="grid grid-cols-3 gap-3">
-              <div className="space-y-2">
-                <Label>Nominal</Label>
-                <Input type="number" step="any" value={nominal} onChange={(e) => setNominal(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Mín</Label>
-                <Input type="number" step="any" value={limitMin} onChange={(e) => setLimitMin(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Máx</Label>
-                <Input type="number" step="any" value={limitMax} onChange={(e) => setLimitMax(e.target.value)} />
-              </div>
-            </div>
+            {charType === "variable" && (
+              <>
+                <div className="space-y-2">
+                  <Label>Unidade</Label>
+                  <Input value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="mm" />
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-2">
+                    <Label>Nominal</Label>
+                    <Input type="number" step="any" value={nominal} onChange={(e) => setNominal(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Mín</Label>
+                    <Input type="number" step="any" value={limitMin} onChange={(e) => setLimitMin(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Máx</Label>
+                    <Input type="number" step="any" value={limitMax} onChange={(e) => setLimitMax(e.target.value)} />
+                  </div>
+                </div>
+              </>
+            )}
+            {charType === "attribute" && (
+              <p className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
+                Atributo: o operador selecionará apenas <strong>Aprovado</strong> ou <strong>Reprovado</strong> na inspeção.
+              </p>
+            )}
             <div className="space-y-2">
               <Label className="flex items-center gap-1">
                 <Clock className="h-3.5 w-3.5" /> Intervalo de Medição
@@ -240,10 +263,17 @@ export default function CharacteristicsPage() {
                 <p className="font-medium text-sm">
                   {c.name}
                   {c.is_critical && <span className="ml-1.5 text-[10px] font-bold text-destructive uppercase">Crítica</span>}
+                  <span className="ml-1.5 text-[10px] font-medium text-muted-foreground uppercase">
+                    {(c as any).characteristic_type === "attribute" ? "Atributo" : "Variável"}
+                  </span>
                 </p>
-                <p className="text-xs text-muted-foreground">
-                  {c.unit} | Nom: {c.nominal} | Min: {c.limit_min} | Max: {c.limit_max}
-                </p>
+                {(c as any).characteristic_type !== "attribute" ? (
+                  <p className="text-xs text-muted-foreground">
+                    {c.unit} | Nom: {c.nominal} | Min: {c.limit_min} | Max: {c.limit_max}
+                  </p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">Aprovado / Reprovado</p>
+                )}
                 <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
                   <Clock className="h-3 w-3" /> A cada {formatInterval(c.measurement_interval_minutes ?? 60)}
                 </p>

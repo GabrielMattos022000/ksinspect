@@ -25,6 +25,7 @@ interface MeasurementRow {
   char_is_critical: boolean;
   char_device_image_path: string | null;
   char_drawing_image_path: string | null;
+  char_type: "variable" | "attribute";
 }
 
 interface CycleInfo {
@@ -67,6 +68,9 @@ function generateTxt(cycle: CycleInfo, rows: MeasurementRow[]): { filename: stri
     .sort((a, b) => a.char_sort_order - b.char_sort_order)
     .map((r) => {
       const status = r.within_limits ? "APROVADO" : "REPROVADO";
+      if (r.char_type === "attribute") {
+        return `${r.char_name};ATRIBUTO;-;-;-;${status};${status}`;
+      }
       return `${r.char_name};${r.char_unit};${r.char_nominal};${r.char_limit_max};${r.char_limit_min};${r.measured_value};${status}`;
     })
     .join("\n");
@@ -122,7 +126,7 @@ export default function CyclePage() {
     // Fetch measurements with characteristics
     const { data: mData } = await supabase
       .from("measurements")
-      .select("*, characteristics(name, unit, nominal, limit_min, limit_max, sort_order, is_critical, device_image_path, drawing_image_path)")
+      .select("*, characteristics(name, unit, nominal, limit_min, limit_max, sort_order, is_critical, device_image_path, drawing_image_path, characteristic_type)")
       .eq("cycle_id", cycleId!)
       .order("id");
 
@@ -141,6 +145,7 @@ export default function CyclePage() {
       char_is_critical: m.characteristics?.is_critical ?? false,
       char_device_image_path: m.characteristics?.device_image_path ?? null,
       char_drawing_image_path: m.characteristics?.drawing_image_path ?? null,
+      char_type: m.characteristics?.characteristic_type ?? "variable",
     }));
 
     mapped.sort((a, b) => a.char_sort_order - b.char_sort_order);
@@ -163,8 +168,10 @@ export default function CyclePage() {
     const numVal = parseFloat(val);
     if (isNaN(numVal)) return;
 
-    const deviation = parseFloat((numVal - row.char_nominal).toFixed(6));
-    const withinLimits = numVal >= row.char_limit_min && numVal <= row.char_limit_max;
+    const deviation = row.char_type === "attribute" ? 0 : parseFloat((numVal - row.char_nominal).toFixed(6));
+    const withinLimits = row.char_type === "attribute"
+      ? numVal === 1
+      : numVal >= row.char_limit_min && numVal <= row.char_limit_max;
 
     await supabase.from("measurements").update({
       measured_value: numVal,
@@ -179,6 +186,27 @@ export default function CyclePage() {
       prev.map((r) =>
         r.id === row.id
           ? { ...r, measured_value: numVal, deviation, within_limits: withinLimits }
+          : r
+      )
+    );
+  };
+
+  const handleAttributeChange = async (row: MeasurementRow, approved: boolean) => {
+    const numVal = approved ? 1 : 0;
+    setInputValues((prev) => ({ ...prev, [row.id]: String(numVal) }));
+
+    await supabase.from("measurements").update({
+      measured_value: numVal,
+      deviation: 0,
+      within_limits: approved,
+      updated_by: user?.id,
+      updated_at: new Date().toISOString(),
+    }).eq("id", row.id);
+
+    setRows((prev) =>
+      prev.map((r) =>
+        r.id === row.id
+          ? { ...r, measured_value: numVal, deviation: 0, within_limits: approved }
           : r
       )
     );
@@ -265,33 +293,65 @@ export default function CyclePage() {
                     <p className="text-base font-semibold">
                       {row.char_name}
                       {row.char_is_critical && <span className="ml-2 text-xs font-bold text-destructive uppercase">Crítica</span>}
+                      <span className="ml-2 text-xs font-medium text-muted-foreground uppercase">
+                        {row.char_type === "attribute" ? "Atributo" : "Variável"}
+                      </span>
                     </p>
-                    <p className="text-sm text-muted-foreground">
-                      {row.char_unit} | Nom: {row.char_nominal} | [{row.char_limit_min} – {row.char_limit_max}]
-                    </p>
+                    {row.char_type === "variable" && (
+                      <p className="text-sm text-muted-foreground">
+                        {row.char_unit} | Nom: {row.char_nominal} | [{row.char_limit_min} – {row.char_limit_max}]
+                      </p>
+                    )}
                   </div>
                   <div className="flex items-center gap-3">
-                    <Input
-                      type="number"
-                      step="any"
-                      className="w-32 h-10 text-base"
-                      value={val}
-                      onChange={(e) => setInputValues((prev) => ({ ...prev, [row.id]: e.target.value }))}
-                      onBlur={(e) => handleValueChange(row, e.target.value)}
-                      disabled={isFinished}
-                      placeholder="Valor"
-                    />
-                    {hasValue && (
+                    {row.char_type === "variable" ? (
                       <>
-                        <span className="text-sm w-20 text-right tabular-nums font-medium">
-                          Δ {row.deviation?.toFixed(3)}
-                        </span>
-                        {isOk ? (
-                          <CheckCircle2 className="h-6 w-6 text-success shrink-0" />
-                        ) : (
-                          <XCircle className="h-6 w-6 text-destructive shrink-0" />
+                        <Input
+                          type="number"
+                          step="any"
+                          className="w-32 h-10 text-base"
+                          value={val}
+                          onChange={(e) => setInputValues((prev) => ({ ...prev, [row.id]: e.target.value }))}
+                          onBlur={(e) => handleValueChange(row, e.target.value)}
+                          disabled={isFinished}
+                          placeholder="Valor"
+                        />
+                        {hasValue && (
+                          <>
+                            <span className="text-sm w-20 text-right tabular-nums font-medium">
+                              Δ {row.deviation?.toFixed(3)}
+                            </span>
+                            {isOk ? (
+                              <CheckCircle2 className="h-6 w-6 text-success shrink-0" />
+                            ) : (
+                              <XCircle className="h-6 w-6 text-destructive shrink-0" />
+                            )}
+                          </>
                         )}
                       </>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant={row.within_limits === true ? "default" : "outline"}
+                          size="sm"
+                          className={row.within_limits === true ? "bg-success hover:bg-success/90 text-success-foreground" : ""}
+                          onClick={() => handleAttributeChange(row, true)}
+                          disabled={isFinished}
+                        >
+                          <CheckCircle2 className="h-4 w-4 mr-1" />
+                          Aprovado
+                        </Button>
+                        <Button
+                          variant={row.within_limits === false ? "default" : "outline"}
+                          size="sm"
+                          className={row.within_limits === false ? "bg-destructive hover:bg-destructive/90 text-destructive-foreground" : ""}
+                          onClick={() => handleAttributeChange(row, false)}
+                          disabled={isFinished}
+                        >
+                          <XCircle className="h-4 w-4 mr-1" />
+                          Reprovado
+                        </Button>
+                      </div>
                     )}
                   </div>
                 </div>
