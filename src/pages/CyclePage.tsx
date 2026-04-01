@@ -123,7 +123,7 @@ export default function CyclePage() {
     // Fetch measurements with characteristics
     const { data: mData } = await supabase
       .from("measurements")
-      .select("*, characteristics(name, unit, nominal, limit_min, limit_max, sort_order, is_critical, device_image_path, drawing_image_path)")
+      .select("*, characteristics(name, unit, nominal, limit_min, limit_max, sort_order, is_critical, device_image_path, drawing_image_path, characteristic_type)")
       .eq("cycle_id", cycleId!)
       .order("id");
 
