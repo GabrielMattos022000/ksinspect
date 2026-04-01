@@ -17,6 +17,7 @@ export type Database = {
       characteristics: {
         Row: {
           active: boolean
+          characteristic_type: string
           created_at: string
           device_image_path: string | null
           drawing_image_path: string | null
@@ -34,6 +35,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          characteristic_type?: string
           created_at?: string
           device_image_path?: string | null
           drawing_image_path?: string | null
@@ -51,6 +53,7 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          characteristic_type?: string
           created_at?: string
           device_image_path?: string | null
           drawing_image_path?: string | null

@@ -1,0 +1,1 @@
+ALTER TABLE public.characteristics ADD COLUMN characteristic_type text NOT NULL DEFAULT 'variable';
