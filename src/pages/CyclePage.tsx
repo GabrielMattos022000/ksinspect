@@ -290,33 +290,65 @@ export default function CyclePage() {
                     <p className="text-base font-semibold">
                       {row.char_name}
                       {row.char_is_critical && <span className="ml-2 text-xs font-bold text-destructive uppercase">Crítica</span>}
+                      <span className="ml-2 text-xs font-medium text-muted-foreground uppercase">
+                        {row.char_type === "attribute" ? "Atributo" : "Variável"}
+                      </span>
                     </p>
-                    <p className="text-sm text-muted-foreground">
-                      {row.char_unit} | Nom: {row.char_nominal} | [{row.char_limit_min} – {row.char_limit_max}]
-                    </p>
+                    {row.char_type === "variable" && (
+                      <p className="text-sm text-muted-foreground">
+                        {row.char_unit} | Nom: {row.char_nominal} | [{row.char_limit_min} – {row.char_limit_max}]
+                      </p>
+                    )}
                   </div>
                   <div className="flex items-center gap-3">
-                    <Input
-                      type="number"
-                      step="any"
-                      className="w-32 h-10 text-base"
-                      value={val}
-                      onChange={(e) => setInputValues((prev) => ({ ...prev, [row.id]: e.target.value }))}
-                      onBlur={(e) => handleValueChange(row, e.target.value)}
-                      disabled={isFinished}
-                      placeholder="Valor"
-                    />
-                    {hasValue && (
+                    {row.char_type === "variable" ? (
                       <>
-                        <span className="text-sm w-20 text-right tabular-nums font-medium">
-                          Δ {row.deviation?.toFixed(3)}
-                        </span>
-                        {isOk ? (
-                          <CheckCircle2 className="h-6 w-6 text-success shrink-0" />
-                        ) : (
-                          <XCircle className="h-6 w-6 text-destructive shrink-0" />
+                        <Input
+                          type="number"
+                          step="any"
+                          className="w-32 h-10 text-base"
+                          value={val}
+                          onChange={(e) => setInputValues((prev) => ({ ...prev, [row.id]: e.target.value }))}
+                          onBlur={(e) => handleValueChange(row, e.target.value)}
+                          disabled={isFinished}
+                          placeholder="Valor"
+                        />
+                        {hasValue && (
+                          <>
+                            <span className="text-sm w-20 text-right tabular-nums font-medium">
+                              Δ {row.deviation?.toFixed(3)}
+                            </span>
+                            {isOk ? (
+                              <CheckCircle2 className="h-6 w-6 text-success shrink-0" />
+                            ) : (
+                              <XCircle className="h-6 w-6 text-destructive shrink-0" />
+                            )}
+                          </>
                         )}
                       </>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant={row.within_limits === true ? "default" : "outline"}
+                          size="sm"
+                          className={row.within_limits === true ? "bg-success hover:bg-success/90 text-success-foreground" : ""}
+                          onClick={() => handleAttributeChange(row, true)}
+                          disabled={isFinished}
+                        >
+                          <CheckCircle2 className="h-4 w-4 mr-1" />
+                          Aprovado
+                        </Button>
+                        <Button
+                          variant={row.within_limits === false ? "default" : "outline"}
+                          size="sm"
+                          className={row.within_limits === false ? "bg-destructive hover:bg-destructive/90 text-destructive-foreground" : ""}
+                          onClick={() => handleAttributeChange(row, false)}
+                          disabled={isFinished}
+                        >
+                          <XCircle className="h-4 w-4 mr-1" />
+                          Reprovado
+                        </Button>
+                      </div>
                     )}
                   </div>
                 </div>
