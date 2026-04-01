@@ -263,10 +263,17 @@ export default function CharacteristicsPage() {
                 <p className="font-medium text-sm">
                   {c.name}
                   {c.is_critical && <span className="ml-1.5 text-[10px] font-bold text-destructive uppercase">Crítica</span>}
+                  <span className="ml-1.5 text-[10px] font-medium text-muted-foreground uppercase">
+                    {(c as any).characteristic_type === "attribute" ? "Atributo" : "Variável"}
+                  </span>
                 </p>
-                <p className="text-xs text-muted-foreground">
-                  {c.unit} | Nom: {c.nominal} | Min: {c.limit_min} | Max: {c.limit_max}
-                </p>
+                {(c as any).characteristic_type !== "attribute" ? (
+                  <p className="text-xs text-muted-foreground">
+                    {c.unit} | Nom: {c.nominal} | Min: {c.limit_min} | Max: {c.limit_max}
+                  </p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">Aprovado / Reprovado</p>
+                )}
                 <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
                   <Clock className="h-3 w-3" /> A cada {formatInterval(c.measurement_interval_minutes ?? 60)}
                 </p>
