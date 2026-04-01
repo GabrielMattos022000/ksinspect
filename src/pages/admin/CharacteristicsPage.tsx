@@ -61,12 +61,14 @@ export default function CharacteristicsPage() {
 
   const handleSave = async () => {
     if (!name.trim()) return toast.error("Nome obrigatório");
+    const isAttribute = charType === "attribute";
     const payload = {
       name: name.trim(),
-      unit,
-      nominal: parseFloat(nominal) || 0,
-      limit_min: parseFloat(limitMin) || 0,
-      limit_max: parseFloat(limitMax) || 0,
+      characteristic_type: charType,
+      unit: isAttribute ? "-" : unit,
+      nominal: isAttribute ? 0 : (parseFloat(nominal) || 0),
+      limit_min: isAttribute ? 0 : (parseFloat(limitMin) || 0),
+      limit_max: isAttribute ? 0 : (parseFloat(limitMax) || 0),
       product_id: productId!,
       sort_order: editing ? editing.sort_order : chars.length,
       measurement_interval_minutes: parseInt(intervalMinutes) || 60,
