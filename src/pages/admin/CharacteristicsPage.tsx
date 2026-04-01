@@ -92,7 +92,7 @@ export default function CharacteristicsPage() {
   };
 
   const resetForm = () => {
-    setName(""); setUnit("mm"); setNominal(""); setLimitMin(""); setLimitMax(""); setIntervalMinutes("60"); setIsCritical(false); setDeviceImagePath(null); setDrawingImagePath(null);
+    setName(""); setCharType("variable"); setUnit("mm"); setNominal(""); setLimitMin(""); setLimitMax(""); setIntervalMinutes("60"); setIsCritical(false); setDeviceImagePath(null); setDrawingImagePath(null);
   };
 
   const toggleActive = async (c: Characteristic) => {
