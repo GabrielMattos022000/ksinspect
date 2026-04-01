@@ -110,6 +110,7 @@ export default function CharacteristicsPage() {
   const openEdit = (c: Characteristic) => {
     setEditing(c);
     setName(c.name);
+    setCharType(((c as any).characteristic_type as "variable" | "attribute") ?? "variable");
     setUnit(c.unit);
     setNominal(String(c.nominal));
     setLimitMin(String(c.limit_min));
