@@ -25,6 +25,7 @@ interface MeasurementRow {
   char_is_critical: boolean;
   char_device_image_path: string | null;
   char_drawing_image_path: string | null;
+  char_type: "variable" | "attribute";
 }
 
 interface CycleInfo {
