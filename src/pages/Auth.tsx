@@ -48,7 +48,7 @@ export default function Auth() {
           <div className="mx-auto mb-2 flex items-center justify-center">
             <img src={logo} alt="KS Logo" className="h-16 w-auto" />
           </div>
-          <CardTitle className="text-2xl">KS Inspection System</CardTitle>
+          <CardTitle className="text-2xl">Sistema de Inspeção - KS</CardTitle>
           <CardDescription>
             {isLogin ? "Entre na sua conta" : "Crie sua conta"}
           </CardDescription>
