@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { api, getFileUrl } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,11 +11,30 @@ import { Plus, Pencil, Trash2, ArrowLeft, Clock } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import CharacteristicImageUpload, { getPublicUrl } from "@/components/CharacteristicImageUpload";
-import type { Tables } from "@/integrations/supabase/types";
+import CharacteristicImageUpload from "@/components/CharacteristicImageUpload";
 
-type Characteristic = Tables<"characteristics">;
-type Product = Tables<"products">;
+interface Characteristic {
+  id: string;
+  name: string;
+  characteristic_type: string;
+  unit: string;
+  nominal: number;
+  limit_min: number;
+  limit_max: number;
+  active: boolean;
+  sort_order: number;
+  measurement_interval_minutes: number;
+  is_critical: boolean;
+  device_image_path: string | null;
+  drawing_image_path: string | null;
+  product_id: string;
+}
+
+interface Product {
+  id: string;
+  pb: string;
+  ks: string;
+}
 
 const INTERVAL_OPTIONS = [
   { label: "30 minutos", value: 30 },
@@ -35,7 +54,6 @@ export default function CharacteristicsPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Characteristic | null>(null);
 
-  // Form state
   const [name, setName] = useState("");
   const [charType, setCharType] = useState<"variable" | "attribute">("variable");
   const [unit, setUnit] = useState("mm");
@@ -48,12 +66,12 @@ export default function CharacteristicsPage() {
   const [drawingImagePath, setDrawingImagePath] = useState<string | null>(null);
 
   const fetchData = async () => {
-    const [{ data: p }, { data: c }] = await Promise.all([
-      supabase.from("products").select("*").eq("id", productId!).maybeSingle(),
-      supabase.from("characteristics").select("*").eq("product_id", productId!).order("sort_order"),
+    const [p, c] = await Promise.all([
+      api.get(`/products/${productId}`),
+      api.get(`/products/${productId}/characteristics`),
     ]);
     setProduct(p);
-    setChars((c as Characteristic[]) ?? []);
+    setChars(c ?? []);
     setLoading(false);
   };
 
@@ -75,20 +93,22 @@ export default function CharacteristicsPage() {
       is_critical: isCritical,
       device_image_path: deviceImagePath,
       drawing_image_path: drawingImagePath,
-    } as any;
-    if (editing) {
-      const { error } = await supabase.from("characteristics").update(payload).eq("id", editing.id);
-      if (error) return toast.error(error.message);
-      toast.success("Característica atualizada");
-    } else {
-      const { error } = await supabase.from("characteristics").insert(payload);
-      if (error) return toast.error(error.message);
-      toast.success("Característica criada");
+    };
+    try {
+      if (editing) {
+        await api.put(`/characteristics/${editing.id}`, payload);
+        toast.success("Característica atualizada");
+      } else {
+        await api.post("/characteristics", payload);
+        toast.success("Característica criada");
+      }
+      setDialogOpen(false);
+      setEditing(null);
+      resetForm();
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.message);
     }
-    setDialogOpen(false);
-    setEditing(null);
-    resetForm();
-    fetchData();
   };
 
   const resetForm = () => {
@@ -96,13 +116,13 @@ export default function CharacteristicsPage() {
   };
 
   const toggleActive = async (c: Characteristic) => {
-    await supabase.from("characteristics").update({ active: !c.active }).eq("id", c.id);
+    await api.put(`/characteristics/${c.id}`, { active: !c.active });
     fetchData();
   };
 
   const deleteChar = async (id: string) => {
     if (!confirm("Excluir?")) return;
-    await supabase.from("characteristics").delete().eq("id", id);
+    await api.delete(`/characteristics/${id}`);
     toast.success("Excluída");
     fetchData();
   };
@@ -110,7 +130,7 @@ export default function CharacteristicsPage() {
   const openEdit = (c: Characteristic) => {
     setEditing(c);
     setName(c.name);
-    setCharType(((c as any).characteristic_type as "variable" | "attribute") ?? "variable");
+    setCharType((c.characteristic_type as "variable" | "attribute") ?? "variable");
     setUnit(c.unit);
     setNominal(String(c.nominal));
     setLimitMin(String(c.limit_min));
@@ -131,13 +151,12 @@ export default function CharacteristicsPage() {
   const moveChar = async (index: number, dir: -1 | 1) => {
     const newIndex = index + dir;
     if (newIndex < 0 || newIndex >= chars.length) return;
-    const updates = [
-      { id: chars[index].id, sort_order: chars[newIndex].sort_order },
-      { id: chars[newIndex].id, sort_order: chars[index].sort_order },
-    ];
-    for (const u of updates) {
-      await supabase.from("characteristics").update({ sort_order: u.sort_order }).eq("id", u.id);
-    }
+    await api.post("/characteristics/reorder", {
+      id1: chars[index].id,
+      order1: chars[newIndex].sort_order,
+      id2: chars[newIndex].id,
+      order2: chars[index].sort_order,
+    });
     fetchData();
   };
 
@@ -264,10 +283,10 @@ export default function CharacteristicsPage() {
                   {c.name}
                   {c.is_critical && <span className="ml-1.5 text-[10px] font-bold text-destructive uppercase">Crítica</span>}
                   <span className="ml-1.5 text-[10px] font-medium text-muted-foreground uppercase">
-                    {(c as any).characteristic_type === "attribute" ? "Atributo" : "Variável"}
+                    {c.characteristic_type === "attribute" ? "Atributo" : "Variável"}
                   </span>
                 </p>
-                {(c as any).characteristic_type !== "attribute" ? (
+                {c.characteristic_type !== "attribute" ? (
                   <p className="text-xs text-muted-foreground">
                     {c.unit} | Nom: {c.nominal} | Min: {c.limit_min} | Max: {c.limit_max}
                   </p>

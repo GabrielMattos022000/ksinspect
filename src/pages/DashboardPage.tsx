@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, XCircle, Clock } from "lucide-react";
@@ -16,57 +16,15 @@ interface StatusItem {
 
 const MACHINE_GROUPS = ["Cilmop", "Gasolina", "Diesel", "Casting"];
 
-const GROUP_COLORS: Record<string, string> = {
-  Cilmop: "bg-blue-500/10 text-blue-700 border-blue-200",
-  Gasolina: "bg-orange-500/10 text-orange-700 border-orange-200",
-  Diesel: "bg-yellow-500/10 text-yellow-700 border-yellow-200",
-  Casting: "bg-purple-500/10 text-purple-700 border-purple-200",
-};
-
 export default function DashboardPage() {
   const [items, setItems] = useState<StatusItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchStatus = async () => {
-      // Fetch latest cycles
-      const { data: cycles } = await supabase
-        .from("measurement_cycles")
-        .select("id, overall_result, finished_at, operator_badge, machine_id, lines(name), machines(name), products(formatted_name)")
-        .eq("status", "FINISHED")
-        .order("finished_at", { ascending: false })
-        .limit(200);
-
-      // Fetch all machines to get their group
-      const { data: machines } = await supabase
-        .from("machines")
-        .select("id, machine_group");
-
-      const machineGroupMap = new Map<string, string>();
-      (machines ?? []).forEach((m: any) => {
-        machineGroupMap.set(m.id, m.machine_group ?? "Cilmop");
-      });
-
-      // Group by machine, keep latest only
-      const byMachine = new Map<string, StatusItem>();
-      (cycles ?? []).forEach((d: any) => {
-        const machineKey = d.machines?.name + "_" + d.lines?.name;
-        if (!byMachine.has(machineKey)) {
-          byMachine.set(machineKey, {
-            line_name: d.lines?.name ?? "",
-            machine_name: d.machines?.name ?? "",
-            machine_group: machineGroupMap.get(d.machine_id) ?? "Cilmop",
-            overall_result: d.overall_result,
-            finished_at: d.finished_at,
-            product_name: d.products?.formatted_name ?? "",
-            operator_badge: d.operator_badge,
-          });
-        }
-      });
-      setItems(Array.from(byMachine.values()));
+    api.get("/dashboard").then((data) => {
+      setItems(data ?? []);
       setLoading(false);
-    };
-    fetchStatus();
+    }).catch(() => setLoading(false));
   }, []);
 
   if (loading) return <div className="p-4 text-muted-foreground">Carregando...</div>;

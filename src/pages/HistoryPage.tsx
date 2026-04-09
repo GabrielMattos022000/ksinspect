@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
@@ -9,10 +9,9 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { X } from "lucide-react";
-import type { Tables } from "@/integrations/supabase/types";
 
-type Line = Tables<"lines">;
-type Product = Tables<"products">;
+interface Line { id: string; name: string; }
+interface Product { id: string; pb: string; ks: string; formatted_name: string | null; }
 
 interface CycleRow {
   id: string;
@@ -33,7 +32,6 @@ export default function HistoryPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Filters
   const [filterLine, setFilterLine] = useState("all");
   const [filterProduct, setFilterProduct] = useState("all");
   const [filterResult, setFilterResult] = useState("all");
@@ -43,9 +41,9 @@ export default function HistoryPage() {
   useEffect(() => {
     if (!user) return;
     Promise.all([
-      supabase.from("lines").select("*").order("name"),
-      supabase.from("products").select("*").order("pb"),
-    ]).then(([{ data: l }, { data: p }]) => {
+      api.get("/lines"),
+      api.get("/products"),
+    ]).then(([l, p]) => {
       setLines(l ?? []);
       setProducts(p ?? []);
     });
@@ -54,27 +52,23 @@ export default function HistoryPage() {
   useEffect(() => {
     if (!user) return;
     setLoading(true);
-    let query = supabase
-      .from("measurement_cycles")
-      .select("id, finished_at, operator_badge, overall_result, lines(name), products(formatted_name, pb, ks)")
-      .eq("status", "FINISHED")
-      .order("finished_at", { ascending: false })
-      .limit(500);
+    const params = new URLSearchParams();
+    params.set("status", "FINISHED");
+    params.set("limit", "500");
+    if (filterLine !== "all") params.set("line_id", filterLine);
+    if (filterProduct !== "all") params.set("product_id", filterProduct);
+    if (filterResult !== "all") params.set("overall_result", filterResult);
+    if (filterDateFrom) params.set("date_from", filterDateFrom);
+    if (filterDateTo) params.set("date_to", filterDateTo);
 
-    if (filterLine !== "all") query = query.eq("line_id", filterLine);
-    if (filterProduct !== "all") query = query.eq("product_id", filterProduct);
-    if (filterResult !== "all") query = query.eq("overall_result", filterResult);
-    if (filterDateFrom) query = query.gte("finished_at", filterDateFrom + "T00:00:00");
-    if (filterDateTo) query = query.lte("finished_at", filterDateTo + "T23:59:59");
-
-    query.then(({ data }) => {
+    api.get(`/cycles?${params.toString()}`).then((data) => {
       setCycles(
         (data ?? []).map((d: any) => ({
           id: d.id,
-          line_name: d.lines?.name ?? "",
-          product_name: d.products?.formatted_name ?? `PB: ${d.products?.pb} KS: ${d.products?.ks}`,
-          product_pb: d.products?.pb ?? "",
-          product_ks: d.products?.ks ?? "",
+          line_name: d.line_name ?? "",
+          product_name: d.product_formatted_name ?? `PB: ${d.product_pb} KS: ${d.product_ks}`,
+          product_pb: d.product_pb ?? "",
+          product_ks: d.product_ks ?? "",
           finished_at: d.finished_at,
           operator_badge: d.operator_badge,
           overall_result: d.overall_result,
@@ -98,7 +92,6 @@ export default function HistoryPage() {
     <div className="space-y-4">
       <h2 className="text-xl font-semibold sr-only">Histórico de Ciclos</h2>
 
-      {/* Filters */}
       <div className="rounded-lg border bg-card p-4 space-y-3">
         <div className="flex items-center justify-between">
           <p className="text-sm font-medium">Filtros</p>

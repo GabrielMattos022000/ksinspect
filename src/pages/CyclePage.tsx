@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { api, getFileUrl } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { CheckCircle2, XCircle, Download, ArrowLeft } from "lucide-react";
-import { getPublicUrl } from "@/components/CharacteristicImageUpload";
 
 interface MeasurementRow {
   id: string;
@@ -99,64 +98,39 @@ export default function CyclePage() {
   const [finishing, setFinishing] = useState(false);
 
   const fetchData = useCallback(async () => {
-    // Fetch cycle with joins
-    const { data: cycleData } = await supabase
-      .from("measurement_cycles")
-      .select("*, lines(name), machines(name), products(formatted_name, pb, ks, cav, maq)")
-      .eq("id", cycleId!)
-      .maybeSingle();
+    try {
+      const data = await api.get(`/cycles/${cycleId}`);
+      setCycle(data.cycle);
 
-    if (!cycleData) { setLoading(false); return; }
+      const mapped: MeasurementRow[] = (data.measurements ?? []).map((m: any) => ({
+        id: m.id,
+        characteristic_id: m.characteristic_id,
+        measured_value: m.measured_value,
+        deviation: m.deviation,
+        within_limits: m.within_limits,
+        char_name: m.char_name ?? "",
+        char_unit: m.char_unit ?? "",
+        char_nominal: m.char_nominal ?? 0,
+        char_limit_min: m.char_limit_min ?? 0,
+        char_limit_max: m.char_limit_max ?? 0,
+        char_sort_order: m.char_sort_order ?? 0,
+        char_is_critical: m.char_is_critical ?? false,
+        char_device_image_path: m.char_device_image_path ?? null,
+        char_drawing_image_path: m.char_drawing_image_path ?? null,
+        char_type: m.char_type ?? "variable",
+      }));
 
-    const info: CycleInfo = {
-      id: cycleData.id,
-      line_name: (cycleData as any).lines?.name ?? "",
-      product_formatted_name: (cycleData as any).products?.formatted_name ?? "",
-      product_pb: (cycleData as any).products?.pb ?? "",
-      product_ks: (cycleData as any).products?.ks ?? "",
-      cav: (cycleData as any).cav ?? "",
-      week_cast: cycleData.week_cast,
-      operator_badge: cycleData.operator_badge,
-      status: cycleData.status,
-      overall_result: cycleData.overall_result,
-      finished_at: cycleData.finished_at,
-    };
-    setCycle(info);
+      mapped.sort((a, b) => a.char_sort_order - b.char_sort_order);
+      setRows(mapped);
 
-    // Fetch measurements with characteristics
-    const { data: mData } = await supabase
-      .from("measurements")
-      .select("*, characteristics(name, unit, nominal, limit_min, limit_max, sort_order, is_critical, device_image_path, drawing_image_path, characteristic_type)")
-      .eq("cycle_id", cycleId!)
-      .order("id");
-
-    const mapped: MeasurementRow[] = (mData ?? []).map((m: any) => ({
-      id: m.id,
-      characteristic_id: m.characteristic_id,
-      measured_value: m.measured_value,
-      deviation: m.deviation,
-      within_limits: m.within_limits,
-      char_name: m.characteristics?.name ?? "",
-      char_unit: m.characteristics?.unit ?? "",
-      char_nominal: m.characteristics?.nominal ?? 0,
-      char_limit_min: m.characteristics?.limit_min ?? 0,
-      char_limit_max: m.characteristics?.limit_max ?? 0,
-      char_sort_order: m.characteristics?.sort_order ?? 0,
-      char_is_critical: m.characteristics?.is_critical ?? false,
-      char_device_image_path: m.characteristics?.device_image_path ?? null,
-      char_drawing_image_path: m.characteristics?.drawing_image_path ?? null,
-      char_type: m.characteristics?.characteristic_type ?? "variable",
-    }));
-
-    mapped.sort((a, b) => a.char_sort_order - b.char_sort_order);
-    setRows(mapped);
-
-    // Initialize input values
-    const vals: Record<string, string> = {};
-    mapped.forEach((r) => {
-      vals[r.id] = r.measured_value != null ? String(r.measured_value) : "";
-    });
-    setInputValues(vals);
+      const vals: Record<string, string> = {};
+      mapped.forEach((r) => {
+        vals[r.id] = r.measured_value != null ? String(r.measured_value) : "";
+      });
+      setInputValues(vals);
+    } catch {
+      // cycle not found
+    }
     setLoading(false);
   }, [cycleId]);
 
@@ -173,15 +147,12 @@ export default function CyclePage() {
       ? numVal === 1
       : numVal >= row.char_limit_min && numVal <= row.char_limit_max;
 
-    await supabase.from("measurements").update({
+    await api.put(`/measurements/${row.id}`, {
       measured_value: numVal,
       deviation,
       within_limits: withinLimits,
-      updated_by: user?.id,
-      updated_at: new Date().toISOString(),
-    }).eq("id", row.id);
+    });
 
-    // Update local state
     setRows((prev) =>
       prev.map((r) =>
         r.id === row.id
@@ -195,13 +166,11 @@ export default function CyclePage() {
     const numVal = approved ? 1 : 0;
     setInputValues((prev) => ({ ...prev, [row.id]: String(numVal) }));
 
-    await supabase.from("measurements").update({
+    await api.put(`/measurements/${row.id}`, {
       measured_value: numVal,
       deviation: 0,
       within_limits: approved,
-      updated_by: user?.id,
-      updated_at: new Date().toISOString(),
-    }).eq("id", row.id);
+    });
 
     setRows((prev) =>
       prev.map((r) =>
@@ -226,12 +195,10 @@ export default function CyclePage() {
     const { filename, content } = generateTxt(cycle, rows);
     downloadTxt(filename, content);
 
-    await supabase.from("measurement_cycles").update({
-      status: "FINISHED",
-      finished_at: new Date().toISOString(),
+    await api.put(`/cycles/${cycle.id}/finish`, {
       overall_result: result,
       txt_path: filename,
-    }).eq("id", cycle.id);
+    });
 
     toast.success("Ciclo finalizado! TXT baixado.");
     setCycle((prev) => prev ? { ...prev, status: "FINISHED", overall_result: result } : prev);
@@ -247,7 +214,6 @@ export default function CyclePage() {
         <ArrowLeft className="h-4 w-4" />
         Novo Ciclo de Medição
       </Button>
-      {/* Summary */}
       <Card>
         <CardContent className="p-5">
           <div className="flex flex-wrap items-center gap-4">
@@ -271,7 +237,6 @@ export default function CyclePage() {
         </CardContent>
       </Card>
 
-      {/* Measurement rows */}
       <div className="space-y-3">
         {rows.map((row) => {
           const val = inputValues[row.id] ?? "";
@@ -361,7 +326,7 @@ export default function CyclePage() {
                       <div>
                         <p className="text-sm font-medium text-muted-foreground mb-1.5">Dispositivo</p>
                         <img
-                          src={getPublicUrl(row.char_device_image_path)!}
+                          src={getFileUrl(row.char_device_image_path)!}
                           alt="Dispositivo de medição"
                           className="w-full object-contain rounded-md border bg-muted p-1"
                           style={{ minHeight: 355, minWidth: 364 }}
@@ -372,22 +337,21 @@ export default function CyclePage() {
                       <div>
                         <p className="text-sm font-medium text-muted-foreground mb-1.5">Desenho Técnico</p>
                         <img
-                          src={getPublicUrl(row.char_drawing_image_path)!}
+                          src={getFileUrl(row.char_drawing_image_path)!}
                           alt="Dimensão no desenho"
                           className="w-full object-contain rounded-md border bg-muted p-1"
                           style={{ minHeight: 355, minWidth: 364 }}
                         />
                       </div>
                     )}
-                   </div>
-                 )}
-               </CardContent>
+                  </div>
+                )}
+              </CardContent>
             </Card>
           );
         })}
       </div>
 
-      {/* Actions */}
       {!isFinished && (
         <Button
           onClick={handleFinish}

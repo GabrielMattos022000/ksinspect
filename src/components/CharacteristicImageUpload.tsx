@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { api, getFileUrl } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { ImagePlus, X, Loader2 } from "lucide-react";
@@ -11,18 +11,10 @@ interface Props {
   onUploaded: (path: string | null) => void;
 }
 
-const BUCKET = "characteristic-images";
-
-export function getPublicUrl(path: string | null) {
-  if (!path) return null;
-  const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
-  return data?.publicUrl ?? null;
-}
-
 export default function CharacteristicImageUpload({ label, currentPath, onUploaded }: Props) {
   const [uploading, setUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const previewUrl = getPublicUrl(currentPath);
+  const previewUrl = getFileUrl(currentPath);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -39,29 +31,26 @@ export default function CharacteristicImageUpload({ label, currentPath, onUpload
     }
 
     setUploading(true);
-    const ext = file.name.split(".").pop();
-    const filePath = `${crypto.randomUUID()}.${ext}`;
 
-    // Remove old file if exists
-    if (currentPath) {
-      await supabase.storage.from(BUCKET).remove([currentPath]);
+    try {
+      // Remove old file if exists
+      if (currentPath) {
+        await api.delete(`/uploads/${currentPath}`).catch(() => {});
+      }
+
+      const result = await api.upload("/uploads", file);
+      onUploaded(result.path);
+    } catch (err: any) {
+      toast.error("Erro ao enviar imagem: " + (err.message || "erro desconhecido"));
     }
 
-    const { error } = await supabase.storage.from(BUCKET).upload(filePath, file);
-    if (error) {
-      toast.error("Erro ao enviar imagem: " + error.message);
-      setUploading(false);
-      return;
-    }
-
-    onUploaded(filePath);
     setUploading(false);
     if (inputRef.current) inputRef.current.value = "";
   };
 
   const handleRemove = async () => {
     if (currentPath) {
-      await supabase.storage.from(BUCKET).remove([currentPath]);
+      await api.delete(`/uploads/${currentPath}`).catch(() => {});
     }
     onUploaded(null);
   };

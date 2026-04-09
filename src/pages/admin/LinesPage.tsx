@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,8 +17,6 @@ interface Line {
   name: string;
   active: boolean;
   line_group: string;
-  created_at: string;
-  updated_at: string;
 }
 
 export default function LinesPage() {
@@ -30,8 +28,8 @@ export default function LinesPage() {
   const [lineGroup, setLineGroup] = useState("Cilmop");
 
   const fetchLines = async () => {
-    const { data } = await supabase.from("lines").select("*").order("name");
-    setLines((data as Line[]) ?? []);
+    const data = await api.get("/lines");
+    setLines(data ?? []);
     setLoading(false);
   };
 
@@ -39,33 +37,37 @@ export default function LinesPage() {
 
   const handleSave = async () => {
     if (!name.trim()) return toast.error("Nome obrigatório");
-    const payload = { name: name.trim(), line_group: lineGroup } as any;
-    if (editing) {
-      const { error } = await supabase.from("lines").update(payload).eq("id", editing.id);
-      if (error) return toast.error(error.message);
-      toast.success("Linha atualizada");
-    } else {
-      const { error } = await supabase.from("lines").insert(payload);
-      if (error) return toast.error(error.message);
-      toast.success("Linha criada");
+    try {
+      if (editing) {
+        await api.put(`/lines/${editing.id}`, { name: name.trim(), line_group: lineGroup });
+        toast.success("Linha atualizada");
+      } else {
+        await api.post("/lines", { name: name.trim(), line_group: lineGroup });
+        toast.success("Linha criada");
+      }
+      setDialogOpen(false);
+      setEditing(null);
+      setName(""); setLineGroup("Cilmop");
+      fetchLines();
+    } catch (err: any) {
+      toast.error(err.message);
     }
-    setDialogOpen(false);
-    setEditing(null);
-    setName(""); setLineGroup("Cilmop");
-    fetchLines();
   };
 
   const toggleActive = async (line: Line) => {
-    await supabase.from("lines").update({ active: !line.active } as any).eq("id", line.id);
+    await api.put(`/lines/${line.id}`, { active: !line.active });
     fetchLines();
   };
 
   const deleteLine = async (id: string) => {
     if (!confirm("Excluir esta linha?")) return;
-    const { error } = await supabase.from("lines").delete().eq("id", id);
-    if (error) return toast.error(error.message);
-    toast.success("Linha excluída");
-    fetchLines();
+    try {
+      await api.delete(`/lines/${id}`);
+      toast.success("Linha excluída");
+      fetchLines();
+    } catch (err: any) {
+      toast.error(err.message);
+    }
   };
 
   const openEdit = (line: Line) => {

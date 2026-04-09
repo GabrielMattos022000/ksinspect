@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, XCircle, Clock, AlertTriangle, Filter } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
 interface LineStatus {
@@ -18,7 +17,7 @@ interface LineStatus {
   finished_at: string | null;
   product_name: string;
   operator_badge: string;
-  interval_minutes: number; // minimum interval from characteristics
+  interval_minutes: number;
 }
 
 const LINE_GROUPS = ["Cilmop", "Gasolina", "Diesel"];
@@ -38,104 +37,18 @@ export default function MonitoringPage() {
   const [cardSize, setCardSize] = useState<"sm" | "md" | "lg">("md");
 
   const fetchData = async () => {
-    // 1. Get all active lines with their machine count and group
-    const { data: lines } = await supabase
-      .from("lines")
-      .select("id, name, machine_count, line_group")
-      .eq("active", true)
-      .order("name") as any;
-
-    // 2. Get latest finished cycle per machine
-    const { data: cycles } = await supabase
-      .from("measurement_cycles")
-      .select("id, line_id, machine_id, overall_result, finished_at, operator_badge, products(formatted_name, pb, ks), machines(name)")
-      .eq("status", "FINISHED")
-      .order("finished_at", { ascending: false })
-      .limit(500) as any;
-
-    // 3. Get minimum interval per product (from characteristics)
-    const { data: chars } = await supabase
-      .from("characteristics")
-      .select("product_id, measurement_interval_minutes")
-      .eq("active", true) as any;
-
-    // Build product -> min interval map
-    const productIntervalMap = new Map<string, number>();
-    (chars ?? []).forEach((c: any) => {
-      const pid = c.product_id;
-      const cur = productIntervalMap.get(pid) ?? Infinity;
-      const val = c.measurement_interval_minutes ?? 60;
-      if (val < cur) productIntervalMap.set(pid, val);
-    });
-
-    // 4. Build status: for each line x machine slot, find latest cycle
-    const cycleByMachine = new Map<string, any>();
-    (cycles ?? []).forEach((c: any) => {
-      const key = `${c.line_id}_${c.machine_id}`;
-      if (!cycleByMachine.has(key)) cycleByMachine.set(key, c);
-    });
-
-    // Get machine records for line/name lookup
-    const { data: machines } = await supabase
-      .from("machines")
-      .select("id, line_id, name") as any;
-    const machineMap = new Map<string, any[]>();
-    (machines ?? []).forEach((m: any) => {
-      const arr = machineMap.get(m.line_id) ?? [];
-      arr.push(m);
-      machineMap.set(m.line_id, arr);
-    });
-
-    const result: LineStatus[] = [];
-    (lines ?? []).forEach((line: any) => {
-      const count = line.machine_count ?? 1;
-      const lineMachines = machineMap.get(line.id) ?? [];
-
-      for (let i = 1; i <= count; i++) {
-        // find machine record for this slot
-        const machineRecord = lineMachines.find((m: any) => m.name === String(i)) ?? lineMachines[i - 1];
-        if (!machineRecord) {
-          // No cycle data yet for this machine slot
-          result.push({
-            line_id: line.id,
-            line_name: line.name,
-            line_group: line.line_group ?? "Cilmop",
-            machine_num: i,
-            machine_id: "",
-            overall_result: null,
-            finished_at: null,
-            product_name: "-",
-            operator_badge: "-",
-            interval_minutes: 60,
-          });
-          continue;
-        }
-        const key = `${line.id}_${machineRecord.id}`;
-        const cycle = cycleByMachine.get(key);
-        result.push({
-          line_id: line.id,
-          line_name: line.name,
-          line_group: line.line_group ?? "Cilmop",
-          machine_num: i,
-          machine_id: machineRecord.id,
-          overall_result: cycle?.overall_result ?? null,
-          finished_at: cycle?.finished_at ?? null,
-          product_name: cycle
-            ? `PB: ${cycle.products?.pb ?? ""} KS: ${cycle.products?.ks ?? ""}`
-            : "-",
-          operator_badge: cycle?.operator_badge ?? "-",
-          interval_minutes: cycle ? (productIntervalMap.get(cycle.product_id) ?? 60) : 60,
-        });
-      }
-    });
-
-    setItems(result);
+    try {
+      const data = await api.get("/monitoring");
+      setItems(data ?? []);
+    } catch {
+      setItems([]);
+    }
     setLoading(false);
   };
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 60000); // refresh every minute
+    const interval = setInterval(fetchData, 60000);
     return () => clearInterval(interval);
   }, []);
 
@@ -215,7 +128,7 @@ export default function MonitoringPage() {
             </div>
 
             <div className={cn("grid gap-3", gridCols)}>
-              {groupItems.map((item, i) => {
+              {groupItems.map((item) => {
                 const delayStatus = getDelayStatus(item.finished_at, item.interval_minutes);
                 const isOk = item.overall_result === "OK";
                 const isNok = item.overall_result === "NOK";
@@ -232,7 +145,6 @@ export default function MonitoringPage() {
                     )}
                   >
                     {cardSize === "sm" ? (
-                      // Mini card
                       <div className="p-2 space-y-1">
                         <p className="text-xs font-semibold truncate">{item.line_name}</p>
                         <div className="flex gap-1 flex-wrap">

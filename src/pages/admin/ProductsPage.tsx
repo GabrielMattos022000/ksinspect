@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,9 +9,16 @@ import { Plus, Pencil, Trash2, Settings2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
-import type { Tables } from "@/integrations/supabase/types";
 
-type Product = Tables<"products">;
+interface Product {
+  id: string;
+  pb: string;
+  ks: string;
+  cav: string;
+  maq: string;
+  active: boolean;
+  formatted_name: string | null;
+}
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -23,7 +30,7 @@ export default function ProductsPage() {
   const navigate = useNavigate();
 
   const fetchProducts = async () => {
-    const { data } = await supabase.from("products").select("*").order("created_at", { ascending: false });
+    const data = await api.get("/products");
     setProducts(data ?? []);
     setLoading(false);
   };
@@ -32,33 +39,38 @@ export default function ProductsPage() {
 
   const handleSave = async () => {
     if (!pb.trim() || !ks.trim()) return toast.error("Preencha PB e KS");
-    const payload = { pb: pb.trim(), ks: ks.trim(), cav: "", maq: "" };
-    if (editing) {
-      const { error } = await supabase.from("products").update(payload).eq("id", editing.id);
-      if (error) return toast.error(error.message);
-      toast.success("Produto atualizado");
-    } else {
-      const { error } = await supabase.from("products").insert(payload);
-      if (error) return toast.error(error.message);
-      toast.success("Produto criado");
+    try {
+      const payload = { pb: pb.trim(), ks: ks.trim(), cav: "", maq: "" };
+      if (editing) {
+        await api.put(`/products/${editing.id}`, payload);
+        toast.success("Produto atualizado");
+      } else {
+        await api.post("/products", payload);
+        toast.success("Produto criado");
+      }
+      setDialogOpen(false);
+      setEditing(null);
+      setPb(""); setKs("");
+      fetchProducts();
+    } catch (err: any) {
+      toast.error(err.message);
     }
-    setDialogOpen(false);
-    setEditing(null);
-    setPb(""); setKs("");
-    fetchProducts();
   };
 
   const toggleActive = async (p: Product) => {
-    await supabase.from("products").update({ active: !p.active }).eq("id", p.id);
+    await api.put(`/products/${p.id}`, { active: !p.active });
     fetchProducts();
   };
 
   const deleteProduct = async (id: string) => {
     if (!confirm("Excluir este produto e todas as suas características?")) return;
-    const { error } = await supabase.from("products").delete().eq("id", id);
-    if (error) return toast.error(error.message);
-    toast.success("Produto excluído");
-    fetchProducts();
+    try {
+      await api.delete(`/products/${id}`);
+      toast.success("Produto excluído");
+      fetchProducts();
+    } catch (err: any) {
+      toast.error(err.message);
+    }
   };
 
   const openEdit = (p: Product) => {
