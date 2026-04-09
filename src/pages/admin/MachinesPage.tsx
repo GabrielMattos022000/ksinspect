@@ -1,23 +1,33 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type { Tables } from "@/integrations/supabase/types";
-
-type Machine = Tables<"machines"> & { machine_group: string };
-type Line = Tables<"lines">;
 
 const MACHINE_GROUPS = ["Cilmop", "Gasolina", "Diesel", "Casting"];
 
+interface Machine {
+  id: string;
+  name: string;
+  line_id: string;
+  active: boolean;
+  machine_group: string;
+  line_name?: string;
+}
+
+interface Line {
+  id: string;
+  name: string;
+}
+
 export default function MachinesPage() {
-  const [machines, setMachines] = useState<(Machine & { lines: { name: string } | null })[]>([]);
+  const [machines, setMachines] = useState<Machine[]>([]);
   const [lines, setLines] = useState<Line[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -27,11 +37,11 @@ export default function MachinesPage() {
   const [machineGroup, setMachineGroup] = useState("Cilmop");
 
   const fetchData = async () => {
-    const [{ data: m }, { data: l }] = await Promise.all([
-      supabase.from("machines").select("*, lines(name)").order("name"),
-      supabase.from("lines").select("*").eq("active", true).order("name"),
+    const [m, l] = await Promise.all([
+      api.get("/machines"),
+      api.get("/lines?active=true"),
     ]);
-    setMachines((m as any) ?? []);
+    setMachines(m ?? []);
     setLines(l ?? []);
     setLoading(false);
   };
@@ -40,34 +50,37 @@ export default function MachinesPage() {
 
   const handleSave = async () => {
     if (!name.trim() || !lineId || !machineGroup) return toast.error("Preencha todos os campos");
-    if (editing) {
-      const { error } = await supabase.from("machines").update({ name: name.trim(), line_id: lineId, machine_group: machineGroup } as any).eq("id", editing.id);
-      if (error) return toast.error(error.message);
-      toast.success("Máquina atualizada");
-    } else {
-      const { error } = await supabase.from("machines").insert({ name: name.trim(), line_id: lineId, machine_group: machineGroup } as any);
-      if (error) return toast.error(error.message);
-      toast.success("Máquina criada");
+    try {
+      if (editing) {
+        await api.put(`/machines/${editing.id}`, { name: name.trim(), line_id: lineId, machine_group: machineGroup });
+        toast.success("Máquina atualizada");
+      } else {
+        await api.post("/machines", { name: name.trim(), line_id: lineId, machine_group: machineGroup });
+        toast.success("Máquina criada");
+      }
+      setDialogOpen(false);
+      setEditing(null);
+      setName(""); setLineId(""); setMachineGroup("Cilmop");
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.message);
     }
-    setDialogOpen(false);
-    setEditing(null);
-    setName("");
-    setLineId("");
-    setMachineGroup("Cilmop");
-    fetchData();
   };
 
   const toggleActive = async (m: Machine) => {
-    await supabase.from("machines").update({ active: !m.active }).eq("id", m.id);
+    await api.put(`/machines/${m.id}`, { active: !m.active });
     fetchData();
   };
 
   const deleteMachine = async (id: string) => {
     if (!confirm("Excluir esta máquina?")) return;
-    const { error } = await supabase.from("machines").delete().eq("id", id);
-    if (error) return toast.error(error.message);
-    toast.success("Máquina excluída");
-    fetchData();
+    try {
+      await api.delete(`/machines/${id}`);
+      toast.success("Máquina excluída");
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.message);
+    }
   };
 
   const openEdit = (m: Machine) => {
@@ -80,16 +93,13 @@ export default function MachinesPage() {
 
   const openNew = () => {
     setEditing(null);
-    setName("");
-    setLineId("");
-    setMachineGroup("Cilmop");
+    setName(""); setLineId(""); setMachineGroup("Cilmop");
     setDialogOpen(true);
   };
 
   if (loading) return <div className="p-4 text-muted-foreground">Carregando...</div>;
 
-  // Group machines by machine_group for display
-  const grouped = MACHINE_GROUPS.reduce<Record<string, typeof machines>>((acc, g) => {
+  const grouped = MACHINE_GROUPS.reduce<Record<string, Machine[]>>((acc, g) => {
     acc[g] = machines.filter((m) => (m.machine_group ?? "Cilmop") === g);
     return acc;
   }, {});
@@ -151,7 +161,7 @@ export default function MachinesPage() {
                   <CardHeader className="flex flex-row items-center justify-between pb-2">
                     <div>
                       <CardTitle className="text-base">{m.name}</CardTitle>
-                      <p className="text-xs text-muted-foreground">{m.lines?.name}</p>
+                      <p className="text-xs text-muted-foreground">{m.line_name}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <Switch checked={m.active} onCheckedChange={() => toggleActive(m)} />

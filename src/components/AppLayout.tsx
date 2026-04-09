@@ -87,7 +87,6 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
   const sidebarContent = (
     <div className="flex h-full flex-col">
-      {/* Header */}
       <div className={cn(
         "flex h-16 items-center border-b border-sidebar-border",
         collapsed ? "justify-center px-2" : "gap-2 px-4"
@@ -98,14 +97,12 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         )}
       </div>
 
-      {/* Nav */}
       <nav className="flex-1 space-y-1 p-2">
         {filteredNav.map((item) => (
           <SidebarLink key={item.href} item={item} />
         ))}
       </nav>
 
-      {/* Footer */}
       <div className="border-t border-sidebar-border p-2">
         {!collapsed && (
           <div className="mb-2 px-2 text-xs text-sidebar-foreground/50 truncate">
@@ -135,7 +132,6 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex h-screen overflow-hidden">
-      {/* Mobile overlay */}
       {mobileOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/50 lg:hidden"
@@ -143,7 +139,6 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         />
       )}
 
-      {/* Desktop Sidebar */}
       <aside
         className={cn(
           "hidden lg:flex flex-col bg-sidebar text-sidebar-foreground transition-all duration-300 relative shrink-0",
@@ -151,7 +146,6 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         )}
       >
         {sidebarContent}
-        {/* Collapse toggle */}
         <Button
           variant="ghost"
           size="icon"
@@ -162,7 +156,6 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         </Button>
       </aside>
 
-      {/* Mobile Sidebar */}
       <aside
         className={cn(
           "fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-sidebar text-sidebar-foreground transition-transform lg:hidden",
@@ -215,7 +208,6 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         </div>
       </aside>
 
-      {/* Main content */}
       <div className="flex flex-1 flex-col overflow-hidden min-w-0">
         <header className="flex h-16 items-center gap-4 border-b bg-card px-4 lg:px-6 shrink-0">
           <Button

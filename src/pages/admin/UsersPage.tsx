@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,11 +22,9 @@ export default function UsersPage() {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<UserProfile | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  // New user form
   const [newName, setNewName] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -34,20 +32,12 @@ export default function UsersPage() {
   const [saving, setSaving] = useState(false);
 
   const fetchUsers = async () => {
-    const { data: profiles } = await supabase.from("profiles").select("user_id, full_name");
-    const { data: roles } = await supabase.from("user_roles").select("user_id, role");
-
-    const roleMap = new Map<string, "admin" | "operador">();
-    (roles ?? []).forEach((r) => roleMap.set(r.user_id, r.role));
-
-    const userList: UserProfile[] = (profiles ?? []).map((p) => ({
-      user_id: p.user_id,
-      full_name: p.full_name,
-      email: "",
-      role: roleMap.get(p.user_id) ?? null,
-    }));
-
-    setUsers(userList);
+    try {
+      const data = await api.get("/users");
+      setUsers(data ?? []);
+    } catch {
+      setUsers([]);
+    }
     setLoading(false);
   };
 
@@ -60,66 +50,48 @@ export default function UsersPage() {
     if (newPassword.length < 6) return toast.error("Senha deve ter ao menos 6 caracteres");
     setSaving(true);
 
-    const { data, error } = await supabase.auth.signUp({
-      email: newEmail.trim(),
-      password: newPassword.trim(),
-      options: {
-        data: { full_name: newName.trim() },
-        emailRedirectTo: window.location.origin,
-      },
-    });
-
-    if (error) {
-      toast.error(error.message);
-      setSaving(false);
-      return;
+    try {
+      await api.post("/users", {
+        full_name: newName.trim(),
+        email: newEmail.trim(),
+        password: newPassword.trim(),
+        role: newRole,
+      });
+      toast.success("Usuário criado com sucesso!");
+      setDialogOpen(false);
+      setNewName(""); setNewEmail(""); setNewPassword(""); setNewRole("operador");
+      fetchUsers();
+    } catch (err: any) {
+      toast.error(err.message);
     }
-
-    if (data.user) {
-      await supabase.from("user_roles").insert({ user_id: data.user.id, role: newRole });
-    }
-
-    toast.success("Usuário criado com sucesso! O usuário precisará confirmar o e-mail.");
-    setDialogOpen(false);
-    setNewName(""); setNewEmail(""); setNewPassword(""); setNewRole("operador");
     setSaving(false);
-    fetchUsers();
   };
 
   const handleChangeRole = async (userId: string, newRoleValue: "admin" | "operador") => {
-    const { data: existing } = await supabase.from("user_roles").select("id").eq("user_id", userId).maybeSingle();
-    if (existing) {
-      const { error } = await supabase.from("user_roles").update({ role: newRoleValue }).eq("user_id", userId);
-      if (error) return toast.error(error.message);
-    } else {
-      const { error } = await supabase.from("user_roles").insert({ user_id: userId, role: newRoleValue });
-      if (error) return toast.error(error.message);
+    try {
+      await api.put(`/users/${userId}/role`, { role: newRoleValue });
+      toast.success("Perfil atualizado");
+      fetchUsers();
+    } catch (err: any) {
+      toast.error(err.message);
     }
-    toast.success("Perfil atualizado");
-    fetchUsers();
   };
 
   const handleDeleteUser = async () => {
     if (!deleteTarget) return;
     setDeleting(true);
-
-    const { data, error } = await supabase.functions.invoke("delete-user", {
-      body: { user_id: deleteTarget.user_id },
-    });
-
-    if (error || data?.error) {
-      toast.error(data?.error || error?.message || "Erro ao excluir usuário");
-    } else {
+    try {
+      await api.delete(`/users/${deleteTarget.user_id}`);
       toast.success("Usuário excluído com sucesso");
       fetchUsers();
+    } catch (err: any) {
+      toast.error(err.message);
     }
-
     setDeleting(false);
     setDeleteTarget(null);
   };
 
   const openNew = () => {
-    setEditingUser(null);
     setNewName(""); setNewEmail(""); setNewPassword(""); setNewRole("operador");
     setDialogOpen(true);
   };
@@ -168,7 +140,6 @@ export default function UsersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete confirmation */}
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>

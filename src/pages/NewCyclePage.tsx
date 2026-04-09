@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,9 +8,16 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import type { Tables } from "@/integrations/supabase/types";
 
-type Product = Tables<"products">;
+interface Product {
+  id: string;
+  pb: string;
+  ks: string;
+  cav: string;
+  maq: string;
+  active: boolean;
+  formatted_name: string | null;
+}
 
 interface Line {
   id: string;
@@ -33,8 +40,8 @@ export default function NewCyclePage() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    supabase.from("lines").select("*").eq("active", true).order("name").then(({ data }) => setLines((data as Line[]) ?? []));
-    supabase.from("products").select("*").eq("active", true).order("pb").then(({ data }) => setProducts(data ?? []));
+    api.get("/lines?active=true").then((data) => setLines(data ?? []));
+    api.get("/products?active=true").then((data) => setProducts(data ?? []));
   }, []);
 
   const weekCastValid = /^\d{1,2}[A-Za-z]$/.test(weekCast);
@@ -52,68 +59,22 @@ export default function NewCyclePage() {
     if (!canStart || !user) return;
     setSubmitting(true);
 
-    const selectedLine = lines.find((l) => l.id === lineId);
+    try {
+      const cycle = await api.post("/cycles", {
+        line_id: lineId,
+        product_id: productId,
+        week_cast: weekCast,
+        operator_badge: badge,
+        cav: cav.trim(),
+      });
 
-    // Find or create a default machine for this line
-    let machineId: string;
-    const { data: existingMachine } = await supabase
-      .from("machines")
-      .select("id")
-      .eq("line_id", lineId)
-      .maybeSingle();
-
-    if (existingMachine) {
-      machineId = existingMachine.id;
-    } else {
-      const { data: newMachine, error: machineError } = await supabase
-        .from("machines")
-        .insert({ line_id: lineId, name: "1", machine_group: selectedLine?.line_group ?? "Cilmop" } as any)
-        .select("id")
-        .single();
-      if (machineError || !newMachine) {
-        toast.error(machineError?.message ?? "Erro ao registrar máquina");
-        setSubmitting(false);
-        return;
-      }
-      machineId = newMachine.id;
-    }
-
-    // Create cycle
-    const { data: cycle, error } = await supabase.from("measurement_cycles").insert({
-      line_id: lineId,
-      machine_id: machineId,
-      product_id: productId,
-      week_cast: weekCast,
-      operator_badge: badge,
-      user_id: user.id,
-      cav: cav.trim(),
-      maq: "",
-    } as any).select().single();
-
-    if (error || !cycle) {
-      toast.error(error?.message ?? "Erro ao criar ciclo");
+      toast.success("Ciclo iniciado!");
+      navigate(`/cycle/${cycle.id}`);
+    } catch (err: any) {
+      toast.error(err.message ?? "Erro ao criar ciclo");
+    } finally {
       setSubmitting(false);
-      return;
     }
-
-    // Create measurement rows for each active characteristic
-    const { data: chars } = await supabase
-      .from("characteristics")
-      .select("id")
-      .eq("product_id", productId)
-      .eq("active", true)
-      .order("sort_order");
-
-    if (chars && chars.length > 0) {
-      const rows = chars.map((c) => ({
-        cycle_id: cycle.id,
-        characteristic_id: c.id,
-      }));
-      await supabase.from("measurements").insert(rows);
-    }
-
-    toast.success("Ciclo iniciado!");
-    navigate(`/cycle/${cycle.id}`);
   };
 
   return (
@@ -150,7 +111,6 @@ export default function NewCyclePage() {
               </SelectContent>
             </Select>
           </div>
-
 
           <div className="grid grid-cols-3 gap-3">
             <div className="space-y-2">
