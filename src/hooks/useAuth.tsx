@@ -81,6 +81,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setRole(null);
   };
 
+  const devLogin = (devRole: AppRole) => {
+    const fakeUser: AuthUser = {
+      id: "dev-user-001",
+      email: devRole === "admin" ? "admin@dev.local" : "operador@dev.local",
+      full_name: devRole === "admin" ? "Admin DEV" : "Operador DEV",
+    };
+    setToken("dev-token");
+    setUser(fakeUser);
+    setRole(devRole);
+    setStoredUser({ user: fakeUser, role: devRole });
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -90,6 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signIn,
         signUp,
         signOut,
+        devLogin,
         isAdmin: role === "admin",
       }}
     >
