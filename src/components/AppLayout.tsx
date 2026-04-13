@@ -28,7 +28,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { label: "Monitoramento", href: "/", icon: <Monitor className="h-5 w-5" /> },
-  { label: "Novo Ciclo", href: "/cycle/new", icon: <ClipboardList className="h-5 w-5" /> },
+  { label: "Acompanhamento", href: "/cycle/new", icon: <ClipboardList className="h-5 w-5" /> },
   { label: "Histórico", href: "/history", icon: <History className="h-5 w-5" /> },
   { label: "Linhas (ZAP)", href: "/admin/lines", icon: <Factory className="h-5 w-5" />, adminOnly: true },
   { label: "Produtos", href: "/admin/products", icon: <Package className="h-5 w-5" />, adminOnly: true },
