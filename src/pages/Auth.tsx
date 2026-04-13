@@ -15,7 +15,7 @@ export default function Auth() {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, devLogin } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -35,6 +35,12 @@ export default function Auth() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDevLogin = (role: "admin" | "operador") => {
+    devLogin(role);
+    toast.success(`Login DEV como ${role}`);
+    navigate("/");
   };
 
   return (
@@ -100,6 +106,19 @@ export default function Auth() {
             >
               {isLogin ? "Criar conta" : "Entrar"}
             </button>
+          </div>
+
+          {/* DEV LOGIN — remover em produção */}
+          <div className="mt-6 border-t pt-4">
+            <p className="text-xs text-center text-muted-foreground mb-2">⚠️ Acesso rápido (sem backend)</p>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" className="flex-1" onClick={() => handleDevLogin("admin")}>
+                Entrar como Admin
+              </Button>
+              <Button variant="outline" size="sm" className="flex-1" onClick={() => handleDevLogin("operador")}>
+                Entrar como Operador
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
