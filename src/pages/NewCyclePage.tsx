@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { PlayCircle, Settings, Clock, CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { PlayCircle, Settings, Clock, Loader2 } from "lucide-react";
 
 interface Product {
   id: string;
