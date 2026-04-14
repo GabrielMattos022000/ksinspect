@@ -89,6 +89,9 @@ export default function NewCyclePage() {
     { id: "cyc-5", started_at: "2026-04-12T14:00:00Z", finished_at: "2026-04-12T15:20:00Z", status: "finished", overall_result: "APROVADO", operator_badge: "36554", week_cast: "14P", cav: "01", product: { pb: "12345", ks: "K001", formatted_name: "Peça Alpha" } },
   ];
 
+  // Mock: intervalo de medição em minutos (vindo da característica do produto)
+  const MOCK_INTERVAL_MINUTES = 120; // 2 horas
+
   useEffect(() => {
     // Mock: carrega linhas
     setLines(MOCK_LINES);
@@ -186,6 +189,19 @@ export default function NewCyclePage() {
 
   const selectedLine = lines.find((l) => l.id === lineId);
 
+  // Último ciclo finalizado → resultado da máquina
+  const lastFinishedCycle = recentCycles.find((c) => c.status === "finished");
+
+  // Controle de fluxo: verifica se o intervalo de medição foi excedido
+  const getFlowStatus = () => {
+    if (!lastFinishedCycle?.finished_at) return "sem_dados";
+    const diffMs = Date.now() - new Date(lastFinishedCycle.finished_at).getTime();
+    const diffMinutes = diffMs / 60000;
+    return diffMinutes > MOCK_INTERVAL_MINUTES ? "atrasado" : "atendido";
+  };
+
+  const flowStatus = getFlowStatus();
+
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       {/* Seleção de Linha */}
@@ -229,7 +245,7 @@ export default function NewCyclePage() {
                   <Loader2 className="h-4 w-4 animate-spin" /> Carregando...
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div className="rounded-lg border p-3 space-y-1">
                     <p className="text-xs text-muted-foreground font-medium">Produto Atual</p>
                     {lineStatus?.current_product ? (
@@ -242,14 +258,28 @@ export default function NewCyclePage() {
                     )}
                   </div>
                   <div className="rounded-lg border p-3 space-y-1">
-                    <p className="text-xs text-muted-foreground font-medium">Ciclo Ativo</p>
-                    {lineStatus?.active_cycle ? (
+                    <p className="text-xs text-muted-foreground font-medium">Último Resultado</p>
+                    {lastFinishedCycle ? (
                       <div>
-                        <p className="font-semibold text-blue-600">Em andamento</p>
-                        <p className="text-sm text-muted-foreground">Operador: {lineStatus.active_cycle.operator_badge}</p>
+                        {lastFinishedCycle.overall_result === "APROVADO" ? (
+                          <p className="font-semibold text-green-600">Aprovado</p>
+                        ) : (
+                          <p className="font-semibold text-destructive">Reprovado</p>
+                        )}
+                        <p className="text-sm text-muted-foreground">Cav: {lastFinishedCycle.cav} — {lastFinishedCycle.week_cast}</p>
                       </div>
                     ) : (
-                      <p className="text-sm text-muted-foreground italic">Nenhum ciclo ativo</p>
+                      <p className="text-sm text-muted-foreground italic">Sem ciclos finalizados</p>
+                    )}
+                  </div>
+                  <div className="rounded-lg border p-3 space-y-1">
+                    <p className="text-xs text-muted-foreground font-medium">Controle de Fluxo</p>
+                    {flowStatus === "atrasado" ? (
+                      <p className="font-semibold text-destructive">Em Atraso</p>
+                    ) : flowStatus === "atendido" ? (
+                      <p className="font-semibold text-green-600">Atendido</p>
+                    ) : (
+                      <p className="text-sm text-muted-foreground italic">Sem dados</p>
                     )}
                   </div>
                   <div className="rounded-lg border p-3 space-y-1">
