@@ -245,7 +245,7 @@ export default function NewCyclePage() {
                   <Loader2 className="h-4 w-4 animate-spin" /> Carregando...
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div className="rounded-lg border p-3 space-y-1">
                     <p className="text-xs text-muted-foreground font-medium">Produto Atual</p>
                     {lineStatus?.current_product ? (
@@ -258,14 +258,28 @@ export default function NewCyclePage() {
                     )}
                   </div>
                   <div className="rounded-lg border p-3 space-y-1">
-                    <p className="text-xs text-muted-foreground font-medium">Ciclo Ativo</p>
-                    {lineStatus?.active_cycle ? (
+                    <p className="text-xs text-muted-foreground font-medium">Último Resultado</p>
+                    {lastFinishedCycle ? (
                       <div>
-                        <p className="font-semibold text-blue-600">Em andamento</p>
-                        <p className="text-sm text-muted-foreground">Operador: {lineStatus.active_cycle.operator_badge}</p>
+                        {lastFinishedCycle.overall_result === "APROVADO" ? (
+                          <p className="font-semibold text-green-600">Aprovado</p>
+                        ) : (
+                          <p className="font-semibold text-destructive">Reprovado</p>
+                        )}
+                        <p className="text-sm text-muted-foreground">Cav: {lastFinishedCycle.cav} — {lastFinishedCycle.week_cast}</p>
                       </div>
                     ) : (
-                      <p className="text-sm text-muted-foreground italic">Nenhum ciclo ativo</p>
+                      <p className="text-sm text-muted-foreground italic">Sem ciclos finalizados</p>
+                    )}
+                  </div>
+                  <div className="rounded-lg border p-3 space-y-1">
+                    <p className="text-xs text-muted-foreground font-medium">Controle de Fluxo</p>
+                    {flowStatus === "atrasado" ? (
+                      <p className="font-semibold text-destructive">Em Atraso</p>
+                    ) : flowStatus === "atendido" ? (
+                      <p className="font-semibold text-green-600">Atendido</p>
+                    ) : (
+                      <p className="text-sm text-muted-foreground italic">Sem dados</p>
                     )}
                   </div>
                   <div className="rounded-lg border p-3 space-y-1">
