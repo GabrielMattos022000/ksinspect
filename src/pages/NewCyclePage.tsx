@@ -89,6 +89,9 @@ export default function NewCyclePage() {
     { id: "cyc-5", started_at: "2026-04-12T14:00:00Z", finished_at: "2026-04-12T15:20:00Z", status: "finished", overall_result: "APROVADO", operator_badge: "36554", week_cast: "14P", cav: "01", product: { pb: "12345", ks: "K001", formatted_name: "Peça Alpha" } },
   ];
 
+  // Mock: intervalo de medição em minutos (vindo da característica do produto)
+  const MOCK_INTERVAL_MINUTES = 120; // 2 horas
+
   useEffect(() => {
     // Mock: carrega linhas
     setLines(MOCK_LINES);
@@ -185,6 +188,19 @@ export default function NewCyclePage() {
   };
 
   const selectedLine = lines.find((l) => l.id === lineId);
+
+  // Último ciclo finalizado → resultado da máquina
+  const lastFinishedCycle = recentCycles.find((c) => c.status === "finished");
+
+  // Controle de fluxo: verifica se o intervalo de medição foi excedido
+  const getFlowStatus = () => {
+    if (!lastFinishedCycle?.finished_at) return "sem_dados";
+    const diffMs = Date.now() - new Date(lastFinishedCycle.finished_at).getTime();
+    const diffMinutes = diffMs / 60000;
+    return diffMinutes > MOCK_INTERVAL_MINUTES ? "atrasado" : "atendido";
+  };
+
+  const flowStatus = getFlowStatus();
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
