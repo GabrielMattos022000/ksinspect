@@ -132,50 +132,50 @@ export default function NewCyclePage() {
   };
 
   const handleStart = async () => {
-    if (!canStart || !user || !lineId) return;
+    if (!canStart || !lineId) return;
     setSubmitting(true);
-    try {
-      const cycle = await api.post("/cycles", {
-        line_id: lineId,
-        product_id: lineStatus?.current_product?.id,
-        week_cast: weekCast,
-        operator_badge: badge,
-        cav: cav.trim(),
-      });
-      toast.success("Ciclo iniciado!");
+    // Mock: simula criação do ciclo
+    setTimeout(() => {
+      toast.success("Ciclo iniciado! (mock)");
       setShowStartDialog(false);
-      navigate(`/cycle/${cycle.id}`);
-    } catch (err: any) {
-      toast.error(err.message ?? "Erro ao criar ciclo");
-    } finally {
       setSubmitting(false);
-    }
+      // Adiciona ciclo mock na lista
+      const newCycle: RecentCycle = {
+        id: `cyc-${Date.now()}`,
+        started_at: new Date().toISOString(),
+        finished_at: null,
+        status: "in_progress",
+        overall_result: null,
+        operator_badge: badge,
+        week_cast: weekCast,
+        cav: cav.trim(),
+        product: lineStatus?.current_product
+          ? { pb: lineStatus.current_product.pb, ks: lineStatus.current_product.ks, formatted_name: lineStatus.current_product.formatted_name }
+          : undefined,
+      };
+      setRecentCycles((prev) => [newCycle, ...prev]);
+      setLineStatus((prev) => prev ? { ...prev, active_cycle: newCycle } : prev);
+    }, 500);
   };
 
   const handleOpenSetup = () => {
     setProductSearch("");
     setSelectedProductId(lineStatus?.current_product?.id ?? "");
-    if (products.length === 0) {
-      api.get("/products?active=true").then((data) => setProducts(data ?? []));
-    }
+    setProducts(MOCK_PRODUCTS);
     setShowSetupDialog(true);
   };
 
   const handleSaveSetup = async () => {
     if (!selectedProductId || !lineId) return;
     setSavingSetup(true);
-    try {
-      await api.put(`/lines/${lineId}/setup`, { product_id: selectedProductId });
-      toast.success("Produto atualizado na linha!");
+    // Mock: simula atualização
+    setTimeout(() => {
+      const newProduct = MOCK_PRODUCTS.find((p) => p.id === selectedProductId) ?? null;
+      toast.success("Produto atualizado na linha! (mock)");
       setShowSetupDialog(false);
-      // Refresh status
-      const status = await api.get(`/lines/${lineId}/status`).catch(() => null);
-      setLineStatus(status);
-    } catch (err: any) {
-      toast.error(err.message ?? "Erro ao atualizar setup");
-    } finally {
       setSavingSetup(false);
-    }
+      setLineStatus((prev) => prev ? { ...prev, current_product: newProduct } : prev);
+    }, 400);
   };
 
   const getResultBadge = (result: string | null, status: string) => {
