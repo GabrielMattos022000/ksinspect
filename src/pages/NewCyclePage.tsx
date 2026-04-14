@@ -69,8 +69,30 @@ export default function NewCyclePage() {
   const [selectedProductId, setSelectedProductId] = useState("");
   const [savingSetup, setSavingSetup] = useState(false);
 
+  // ── Mock data para teste ──
+  const MOCK_LINES: Line[] = [
+    { id: "line-1", name: "ZAP 01", line_group: "Grupo A", active: true },
+    { id: "line-2", name: "ZAP 02", line_group: "Grupo A", active: true },
+    { id: "line-3", name: "ZAP 03", line_group: "Grupo B", active: true },
+  ];
+
+  const MOCK_PRODUCTS: Product[] = [
+    { id: "prod-1", pb: "12345", ks: "K001", cav: "01", maq: "", active: true, formatted_name: "Peça Alpha" },
+    { id: "prod-2", pb: "67890", ks: "K002", cav: "02", maq: "", active: true, formatted_name: "Peça Beta" },
+    { id: "prod-3", pb: "11223", ks: "K003", cav: "03", maq: "", active: true, formatted_name: "Peça Gamma" },
+  ];
+
+  const MOCK_CYCLES: RecentCycle[] = [
+    { id: "cyc-1", started_at: "2026-04-14T08:00:00Z", finished_at: "2026-04-14T09:30:00Z", status: "finished", overall_result: "APROVADO", operator_badge: "36554", week_cast: "15P", cav: "01", product: { pb: "12345", ks: "K001", formatted_name: "Peça Alpha" } },
+    { id: "cyc-2", started_at: "2026-04-14T10:00:00Z", finished_at: "2026-04-14T11:15:00Z", status: "finished", overall_result: "REPROVADO", operator_badge: "42100", week_cast: "15P", cav: "02", product: { pb: "12345", ks: "K001", formatted_name: "Peça Alpha" } },
+    { id: "cyc-3", started_at: "2026-04-14T13:00:00Z", finished_at: null, status: "in_progress", overall_result: null, operator_badge: "36554", week_cast: "15Q", cav: "01", product: { pb: "12345", ks: "K001", formatted_name: "Peça Alpha" } },
+    { id: "cyc-4", started_at: "2026-04-13T07:30:00Z", finished_at: "2026-04-13T08:45:00Z", status: "finished", overall_result: "APROVADO", operator_badge: "55012", week_cast: "14P", cav: "03", product: { pb: "67890", ks: "K002", formatted_name: "Peça Beta" } },
+    { id: "cyc-5", started_at: "2026-04-12T14:00:00Z", finished_at: "2026-04-12T15:20:00Z", status: "finished", overall_result: "APROVADO", operator_badge: "36554", week_cast: "14P", cav: "01", product: { pb: "12345", ks: "K001", formatted_name: "Peça Alpha" } },
+  ];
+
   useEffect(() => {
-    api.get("/lines?active=true").then((data) => setLines(data ?? []));
+    // Mock: carrega linhas
+    setLines(MOCK_LINES);
   }, []);
 
   useEffect(() => {
@@ -80,14 +102,15 @@ export default function NewCyclePage() {
       return;
     }
     setLoadingStatus(true);
-
-    Promise.all([
-      api.get(`/cycles?line_id=${lineId}&limit=10`).catch(() => []),
-      api.get(`/lines/${lineId}/status`).catch(() => null),
-    ]).then(([cycles, status]) => {
-      setRecentCycles(cycles ?? []);
-      setLineStatus(status);
-    }).finally(() => setLoadingStatus(false));
+    // Mock: simula carregamento
+    setTimeout(() => {
+      setRecentCycles(MOCK_CYCLES);
+      setLineStatus({
+        active_cycle: MOCK_CYCLES.find((c) => c.status === "in_progress") ?? null,
+        current_product: MOCK_PRODUCTS[0],
+      });
+      setLoadingStatus(false);
+    }, 400);
   }, [lineId]);
 
   // Validações
