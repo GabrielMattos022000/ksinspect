@@ -13,6 +13,7 @@ import LinesPage from "@/pages/admin/LinesPage";
 import ProductsPage from "@/pages/admin/ProductsPage";
 import CharacteristicsPage from "@/pages/admin/CharacteristicsPage";
 import UsersPage from "@/pages/admin/UsersPage";
+import AssignableCausesPage from "@/pages/admin/AssignableCausesPage";
 import MonitoringPage from "@/pages/MonitoringPage";
 import NotFound from "@/pages/NotFound";
 
@@ -50,6 +51,7 @@ const App = () => (
             <Route path="/admin/products" element={<ProtectedRoute adminOnly><ProductsPage /></ProtectedRoute>} />
             <Route path="/admin/products/:productId/characteristics" element={<ProtectedRoute adminOnly><CharacteristicsPage /></ProtectedRoute>} />
             <Route path="/admin/users" element={<ProtectedRoute adminOnly><UsersPage /></ProtectedRoute>} />
+            <Route path="/admin/assignable-causes" element={<ProtectedRoute adminOnly><AssignableCausesPage /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
